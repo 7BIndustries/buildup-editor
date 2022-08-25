@@ -22,12 +22,16 @@ struct XWindow {
     Atom wm_delete_window;
 };
 
+char file_path[256];  /* Holds the selected file/folder path */
 char buffer[256];  /* Holds the BuildUp markdown text entered by the user */
 char html_preview[256];  /* Holds the converted HTML text based on the markdown */
 
 /* md4c flags for converting markdown to HTML */
 static unsigned parser_flags = 0;
 static unsigned renderer_flags = MD_HTML_FLAG_DEBUG;
+
+/* Popup dialog control flags */
+static int show_open_project = nk_false;
 
 /*
  * Buffer struct that the converted HTML text is stored in.
@@ -75,7 +79,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
     membuf_init(&buf_out, (MD_SIZE)(sizeof(buffer) + sizeof(buffer)/8 + 64));
 
     if (nk_begin(ctx, "Main Window", nk_rect(0, 0, window_width, window_height),
-        NK_WINDOW_BORDER | NK_WINDOW_SCALABLE | NK_WINDOW_SCROLL_AUTO_HIDE))
+        NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR))
     {
         /* Application menu */
         nk_menubar_begin(ctx);
@@ -93,6 +97,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             /* Button to open an existing project */
             if (nk_menu_item_label(ctx, "OPEN PROJECT", NK_TEXT_LEFT)) {
                 printf("Opening existing project...\n");
+                show_open_project = nk_true;
             }
 
             /* Button to save the current file and update the preview */
@@ -158,6 +163,33 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         /* Output HTML */
         nk_layout_row_push(ctx, 0.4f);
         nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE, html_preview, strlen(html_preview) + 1, nk_filter_ascii);
+
+        /* Show the Open Project dialog */
+        if (show_open_project) {
+            const int popup_width = (window_width / 2) - (300 / 2);
+            const int popup_height = (window_height / 2) - (190 / 2);
+            struct nk_rect s = {popup_width, popup_height, 300, 190};
+            if (nk_popup_begin(ctx, NK_POPUP_STATIC, "Open Project", NK_WINDOW_CLOSABLE, s))
+            {
+                nk_layout_row_dynamic(ctx, 20, 1);
+                nk_label(ctx, "Project Directory:", NK_TEXT_LEFT);
+                nk_layout_row_dynamic(ctx, 25, 1);
+                nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX, file_path, sizeof(file_path), nk_filter_ascii);
+                nk_layout_row_dynamic(ctx, 25, 3);
+                if (nk_button_label(ctx, "OK")) {
+                    show_open_project = nk_false;
+                    nk_popup_close(ctx);
+                }
+                if (nk_button_label(ctx, "Cancel")) {
+                    show_open_project = nk_false;
+                    nk_popup_close(ctx);
+                }
+                nk_popup_end(ctx);
+            }
+            else {
+                show_open_project = nk_false;
+            }
+        }
     }
     nk_end(ctx);
 }

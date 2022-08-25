@@ -88,6 +88,11 @@ int main(void)
 
     while (running)
     {
+        /* Need the current size of the XWindow to scale the Nuklear window to it */
+        XGetWindowAttributes(xw.dpy, xw.win, &xw.attr);
+        xw.width = (unsigned int)xw.attr.width;
+        xw.height = (unsigned int)xw.attr.height;
+
         /* Input */
         XEvent evt;
         started = timestamp();
@@ -101,7 +106,7 @@ int main(void)
         nk_input_end(ctx);
 
         /* Render the Nuklear UI */
-        ui_do(ctx, WINDOW_WIDTH, WINDOW_HEIGHT, &running);
+        ui_do(ctx, xw.attr.width, xw.attr.height, &running);
 
         /* Draw */
         XClearWindow(xw.dpy, xw.win);

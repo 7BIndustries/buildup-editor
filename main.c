@@ -11,14 +11,14 @@
  *      Run the binary without options to launch a GUI containing controls to *
  *      enter, convert and export your BuildUp documentation.                 *
  * ***************************************************************************/
-#include <assert.h>
+/*#include <assert.h>*/
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
+/*#include <stdlib.h>*/
+/*#include <stdarg.h>*/
 #include <string.h>
-#include <limits.h>
-#include <math.h>
-#include <unistd.h>
+/*#include <limits.h>*/
+/*#include <math.h>*/
+/*#include <unistd.h>*/
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO

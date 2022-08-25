@@ -38,6 +38,28 @@
 #define WINDOW_WIDTH    800
 #define WINDOW_HEIGHT   600
 
+typedef struct XWindow XWindow;
+struct XWindow {
+    Display *dpy;
+    Window root;
+    Visual *vis;
+    Colormap cmap;
+    XWindowAttributes attr;
+    XSetWindowAttributes swa;
+    Window win;
+    int screen;
+    XFont *font;
+    unsigned int width;
+    unsigned int height;
+    Atom wm_delete_window;
+};
+
+long dt;  /* Difference between the start of a timer and the current time */
+long started;  /* Milliseconds when the timer was started */
+int running = 1;  /* Setting to zero will shut down the app */
+XWindow xw;  /* Struct representing an XLib window */
+struct nk_context *ctx;  /* Nuklear UI context struct */
+
 static void die(const char *fmt, ...)
 {
     va_list ap;
@@ -48,11 +70,18 @@ static void die(const char *fmt, ...)
     exit(EXIT_FAILURE);
 }
 
-long dt;  /* Difference between the start of a timer and the current time */
-long started;  /* Milliseconds when the timer was started */
-int running = 1;  /* Setting to zero will shut down the app */
-XWindow xw;  /* Struct representing an XLib window */
-struct nk_context *ctx;  /* Nuklear UI context struct */
+/*
+ * Handles some initialization functions of the Nuklear based UI.
+ */
+struct nk_context* ui_init(struct XWindow xw) {
+    struct nk_context *ctx;
+
+    /* GUI */
+    xw.font = nk_xfont_create(xw.dpy, "fixed");
+    ctx = nk_xlib_init(xw.font, xw.dpy, xw.screen, xw.win, xw.width, xw.height);
+
+    return ctx;
+}
 
 int main(void)
 {

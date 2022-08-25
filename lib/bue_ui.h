@@ -1,3 +1,13 @@
+/******************************************************************************
+ * bue_ui-- Sets up the Nuklear GUI for display to the user. Called once      *
+ *          per frame. Encapsulates the UI logic so that it is usable         *
+ *          across OSes.                                                      *
+ *                                                                            *
+ * Author: 7B Industries                                                      *
+ * License: Apache 2.0                                                        *
+ *                                                                            *
+ * ***************************************************************************/
+
 /*# define INCLUDE_STYLE*/
 #ifdef INCLUDE_STYLE
 /*set_style(ctx, THEME_WHITE);*/
@@ -5,22 +15,6 @@
 /*set_style(ctx, THEME_BLUE);*/
 /*set_style(ctx, THEME_DARK);*/
 #endif
-
-typedef struct XWindow XWindow;
-struct XWindow {
-    Display *dpy;
-    Window root;
-    Visual *vis;
-    Colormap cmap;
-    XWindowAttributes attr;
-    XSetWindowAttributes swa;
-    Window win;
-    int screen;
-    XFont *font;
-    unsigned int width;
-    unsigned int height;
-    Atom wm_delete_window;
-};
 
 char file_path[256];  /* Holds the selected file/folder path */
 char buffer[256];  /* Holds the BuildUp markdown text entered by the user */
@@ -192,17 +186,4 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         }
     }
     nk_end(ctx);
-}
-
-/*
- * Handles some initialization functions of the Nuklear based UI.
- */
-struct nk_context* ui_init(struct XWindow xw) {
-    struct nk_context *ctx;
-
-    /* GUI */
-    xw.font = nk_xfont_create(xw.dpy, "fixed");
-    ctx = nk_xlib_init(xw.font, xw.dpy, xw.screen, xw.win, xw.width, xw.height);
-
-    return ctx;
 }

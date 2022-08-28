@@ -12,18 +12,6 @@
 
 DIR* open_dir;
 
-static char* str_duplicate(const char *src)
-{
-    char *ret;
-    size_t len = strlen(src);
-    if (!len) return 0;
-    ret = (char*)malloc(len+1);
-    if (!ret) return 0;
-    memcpy(ret, src, len);
-    ret[len] = '\0';
-    return ret;
-}
-
 /*
  * Collects the contents of the directory to pass back to the caller.
  * This does not filter any files out as it is expected that the caller
@@ -58,7 +46,7 @@ static char** list_dir_contents(char* dir_path) {
             }
 
             /* Add the new directory entry to the directory listing array */
-            char* new_path = str_duplicate(data->d_name);
+            char* new_path = strdup(data->d_name);
             dir_contents[size] = new_path;
 
             printf("%s\n", data->d_name);

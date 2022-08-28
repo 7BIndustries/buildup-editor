@@ -8,6 +8,8 @@
  *                                                                            *
  * ***************************************************************************/
 
+#include "bue_io.h"
+
 /*# define INCLUDE_STYLE*/
 #ifdef INCLUDE_STYLE
 /*set_style(ctx, THEME_WHITE);*/
@@ -158,7 +160,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         nk_layout_row_push(ctx, 0.4f);
         nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE, html_preview, strlen(html_preview) + 1, nk_filter_ascii);
 
-        /* Show the Open Project dialog */
+        /* Show and handle the Open Project dialog */
         if (show_open_project) {
             const int popup_width = (window_width / 2) - (300 / 2);
             const int popup_height = (window_height / 2) - (190 / 2);
@@ -172,6 +174,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 nk_layout_row_dynamic(ctx, 25, 3);
                 if (nk_button_label(ctx, "OK")) {
                     show_open_project = nk_false;
+                    list_dir_contents(file_path);
                     nk_popup_close(ctx);
                 }
                 if (nk_button_label(ctx, "Cancel")) {
@@ -182,6 +185,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             }
             else {
                 show_open_project = nk_false;
+                file_path[0] = '\0';
             }
         }
     }

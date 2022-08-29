@@ -56,9 +56,17 @@ static void membuf_init(struct membuffer* buf, MD_SIZE new_asize)
     }
 }
 
-/*
- * Call back function for the Markdown to HTML processor.
- */
+/******************************************************************************
+ * process_output -- Call back function for the Markdown to HTML processor.   *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      text - The markdown that has been converted to HTML                   *
+ *      size - The size of the converted HTML string                          *
+ *      userdata - A struct that holds custom data that is passed as-is       *
+ *                                                                            *
+ * Returns                                                                    *
+ *      N/A                                                                   *
+ *****************************************************************************/
 static void process_output(const MD_CHAR* text, MD_SIZE size, void* userdata)
 {
     strncat(html_preview, text, size);

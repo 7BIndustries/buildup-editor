@@ -3,7 +3,6 @@
  *                                                                            *
  * Author: 7B Industries                                                      *
  * License: Apache 2.0                                                        *
- *                                                                            *
  * ***************************************************************************/
 
 #include <stdio.h>
@@ -14,16 +13,23 @@
 char* new_path;
 DIR* open_dir;
 
+/* struct holding the listed directory contents and extra information */
 struct directory_contents {
     char** dir_contents;
     int listing_length;
 };
 
-/*
- * Collects the contents of the directory to pass back to the caller.
- * This does not filter any files out as it is expected that the caller
- * will do that.
- */
+/******************************************************************************
+ * directory_contents -- Collects the contents of the directory to pass back  *
+ *                       to the caller. This does not filter any files out as *
+ *                       it is expected that the caller will do that.         *
+ * Parameters                                                                 *
+ *      dir_path -- A char pointer with the path to the directory to list.    *
+ *                                                                            *
+ * Returns                                                                    *
+ *      A struct holding the directory listing and additional information     *
+ *      about the listing items.                                              *
+ *****************************************************************************/
 struct directory_contents list_dir_contents(char* dir_path) {
     int size = -1;  /* The size (length) of the array holding the directory contents */
     size_t capacity = 32;  /* The size (in bytes) of the array holding the directory contents */

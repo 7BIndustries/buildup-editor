@@ -18,9 +18,11 @@
 /*set_style(ctx, THEME_DARK);*/
 #endif
 
+int i;  /* Loop counter variable */
 char file_path[256];  /* Holds the selected file/folder path */
 char buffer[256];  /* Holds the BuildUp markdown text entered by the user */
 char html_preview[256];  /* Holds the converted HTML text based on the markdown */
+struct directory_contents contents;  /* Holds the directory contents that were discovered */
 
 /* md4c flags for converting markdown to HTML */
 static unsigned parser_flags = 0;
@@ -59,13 +61,32 @@ static void membuf_init(struct membuffer* buf, MD_SIZE new_asize)
  */
 static void process_output(const MD_CHAR* text, MD_SIZE size, void* userdata)
 {
-    
-    /* printf("%d\n", *((int*) userdata)); */
-
     strncat(html_preview, text, size);
 }
 
+
+/*
+ * Allows a check to make sure that a few needed project files are present
+ * in the directory selected by the user.
+ */
+static bool check_for_buildup_files(struct directory_contents contents) {
+    bool result = false;
+    bool buildconf_found = false;
+
+    /* Check for a few of the typical files */
+    for (i = 0; i <= contents.listing_length; i++) {
+        /* Check to see if the current name matches the buildconf.yaml file */
+        if (strcmp(contents.dir_contents[i], "buildconf.yaml") == 0) buildconf_found = true;
+    }
+
+    /* Make sure everything was found that is required */
+    result = buildconf_found;
+
+    return result;
+}
+
 int ret;  /* The return code for the markdown to HTML conversion */
+struct nk_rect bounds;  /* The bounds of the popup dialog */
 
 /*
  * Responsible for creating the BuildUp Editor UI each frame.
@@ -162,21 +183,51 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
         /* Show and handle the Open Project dialog */
         if (show_open_project) {
-            const int popup_width = (window_width / 2) - (300 / 2);
-            const int popup_height = (window_height / 2) - (190 / 2);
-            struct nk_rect s = {popup_width, popup_height, 300, 190};
-            if (nk_popup_begin(ctx, NK_POPUP_STATIC, "Open Project", NK_WINDOW_CLOSABLE, s))
+            /* Compute the position of the popup to put it in the center of the window */
+            bounds.x = (window_width / 2) - (300 / 2);
+            bounds.y = (window_height / 2) - (190 / 2);
+            bounds.w = 300;
+            bounds.h = 190;
+
+            /* The open project dialog that allows the user to set the project directory path */
+            if (nk_popup_begin(ctx, NK_POPUP_DYNAMIC, "Open Project", NK_WINDOW_CLOSABLE, bounds))
             {
+                /* The path label */
                 nk_layout_row_dynamic(ctx, 20, 1);
                 nk_label(ctx, "Project Directory:", NK_TEXT_LEFT);
+
+                /* The path entry box */
                 nk_layout_row_dynamic(ctx, 25, 1);
                 nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX, file_path, sizeof(file_path), nk_filter_ascii);
+
+                /* OK button allows user to submit the path information */
                 nk_layout_row_dynamic(ctx, 25, 3);
                 if (nk_button_label(ctx, "OK")) {
                     show_open_project = nk_false;
-                    list_dir_contents(file_path);
+                    /* Collect the user's given path contents so that we can work with them */
+                    contents = list_dir_contents(file_path);
+
+                    /* If the user gave an invalid directory, let them know */
+                    if (contents.listing_length == -2) {
+                        printf("The directory you selected does not exist.\nPlease try to open another directory.\n");
+                    }
+                    else if (contents.listing_length <= 0) {
+                        printf("No project files were found, please try to open another directory.\n");
+                    }
+                    else if (!check_for_buildup_files(contents)) {
+                        printf("This directory does not appear to be a valid BuildUp directory.\nPlease try to open another directory.\n");
+                    }
+                    else {
+                        /* List the file directory */
+                        for (i = 0; i <= contents.listing_length; i++) {
+                            printf("File: %s\n", contents.dir_contents[i]);
+                        }
+                    }
+
                     nk_popup_close(ctx);
                 }
+
+                /* Cancel button allows the user to skip submitting the path information */
                 if (nk_button_label(ctx, "Cancel")) {
                     show_open_project = nk_false;
                     nk_popup_close(ctx);
@@ -185,6 +236,8 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             }
             else {
                 show_open_project = nk_false;
+
+                /* Reset the file path string to prevent any old text frorm being reused */
                 file_path[0] = '\0';
             }
         }

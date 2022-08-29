@@ -19,6 +19,7 @@
 /*#include <limits.h>*/
 /*#include <math.h>*/
 /*#include <unistd.h>*/
+#include <stdbool.h>
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
@@ -59,6 +60,7 @@ long dt;  /* Difference between the start of a timer and the current time */
 long started;  /* Milliseconds when the timer was started */
 int running = 1;  /* Setting to zero will shut down the app */
 XWindow xw;  /* Struct representing an XLib window */
+XEvent evt;  /* X11 event struct */
 struct nk_context *ctx;  /* Nuklear UI context struct */
 
 static void die(const char *fmt, ...)
@@ -124,7 +126,6 @@ int main(void)
         xw.height = (unsigned int)xw.attr.height;
 
         /* Input */
-        XEvent evt;
         started = timestamp();
         nk_input_begin(ctx);
         while (XPending(xw.dpy)) {

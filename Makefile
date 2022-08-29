@@ -2,7 +2,7 @@
 BIN = buildup-editor
 
 # Flags
-CFLAGS += -std=c89 -Wall -Wextra -pedantic -Wno-unused-function -O2
+CFLAGS += -std=c18 -Wall -Wextra -pedantic -Wno-unused-function -O2
 
 SRC = main.c external/md4c.c external/md4c-html.c external/entity.c
 OBJ = $(SRC:.c=.o)

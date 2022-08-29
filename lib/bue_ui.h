@@ -21,8 +21,8 @@
 int i;  /* Loop counter variable */
 char file_path[256];  /* Holds the selected file/folder path */
 char buffer[256];  /* Holds the BuildUp markdown text entered by the user */
-char html_preview[256];  /* Holds the converted HTML text based on the markdown */
-struct directory_contents contents;  /* Holds the directory contents that were discovered */
+char html_preview[256];  /* Converted HTML text based on the markdown */
+struct directory_contents contents;  /* Listed directory contents */
 
 /* md4c flags for converting markdown to HTML */
 static unsigned parser_flags = 0;

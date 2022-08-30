@@ -80,15 +80,23 @@ static void process_output(const MD_CHAR* text, MD_SIZE size, void* userdata)
 static bool check_for_buildup_files(struct directory_contents contents) {
     bool result = false;
     bool buildconf_found = false;
+    bool big_p_parts_found = false;
+    bool small_p_parts_found = false;
+    bool big_t_tools_found = false;
+    bool small_t_tools_found = false;
 
     /* Check for a few of the typical files */
     for (i = 0; i <= contents.listing_length; i++) {
         /* Check to see if the current name matches the buildconf.yaml file */
         if (strcmp(contents.dir_contents[i], "buildconf.yaml") == 0) buildconf_found = true;
+        if (strcmp(contents.dir_contents[i], "Parts.yaml") == 0) big_p_parts_found = true;
+        if (strcmp(contents.dir_contents[i], "parts.yaml") == 0) small_p_parts_found = true;
+        if (strcmp(contents.dir_contents[i], "Tools.yaml") == 0) big_t_tools_found = true;
+        if (strcmp(contents.dir_contents[i], "tools.yaml") == 0) small_t_tools_found = true;
     }
 
     /* Make sure everything was found that is required */
-    result = buildconf_found;
+    result = buildconf_found && (big_p_parts_found || small_p_parts_found) && (big_t_tools_found || small_t_tools_found);
 
     return result;
 }
@@ -156,55 +164,57 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         /* Project tree structure */
         nk_layout_row_push(ctx, 0.2f);
         if (nk_group_begin(ctx, "Project", NK_WINDOW_BORDER)) {
+            int selected[contents.listing_length];
+            for (i = 0; i < contents.listing_length; i++) {
+                selected[i] = nk_false;
+            }
+
+            /* Add the directory contents to the project tree */
             if (nk_tree_push(ctx, NK_TREE_NODE, "Project", NK_MAXIMIZED)) {
-                if(nk_tree_push(ctx, NK_TREE_NODE, "images", NK_MINIMIZED)) {
-                    nk_label(ctx, " finished.png", NK_TEXT_LEFT);
-                    nk_tree_pop(ctx);
+                // Prevents an error when the program starts up with no project is selected
+                if (contents.listing_length > 0) {
+                    for (i = 0; i <= contents.listing_length; i++) {
+                        nk_selectable_label(ctx, contents.dir_contents[i], NK_TEXT_LEFT, &selected[i]);
+                    }
                 }
-                if(nk_tree_push(ctx, NK_TREE_NODE, "manufacture", NK_MINIMIZED)) {
-                    nk_label(ctx, " printing.md", NK_TEXT_LEFT);
-                    nk_label(ctx, " post_processing.md", NK_TEXT_LEFT);
-                    nk_tree_pop(ctx);
+
+                // Work out which tree item, if any, has been selected
+                for (i = 0; i < contents.listing_length; i++) {
+                    if (selected[i]) {
+                        printf("%s is selected.\n", contents.dir_contents[i]);
+                    }
                 }
-                if(nk_tree_push(ctx, NK_TREE_NODE, "assembly", NK_MINIMIZED)) {
-                    nk_label(ctx, " subassembly_a.md", NK_TEXT_LEFT);
-                    nk_label(ctx, " full_assembly.md", NK_TEXT_LEFT);
-                    nk_tree_pop(ctx);
-                }
-                nk_label(ctx, " index.md", NK_TEXT_LEFT);
-                nk_label(ctx, " buildconf.yaml", NK_TEXT_LEFT);
-                nk_label(ctx, " parts.yaml", NK_TEXT_LEFT);
-                nk_label(ctx, " tools.yaml", NK_TEXT_LEFT);
+
                 nk_tree_pop(ctx);
             }
 
             nk_group_end(ctx);
         }
 
-        /* BuildUp markdown editor text field*/
+        // BuildUp markdown editor text field
         nk_layout_row_push(ctx, 0.4f);
         nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX|NK_EDIT_AUTO_SELECT|NK_EDIT_MULTILINE, buffer, sizeof(buffer), nk_filter_ascii);
 
-        /* Output HTML */
+        // Output HTML
         nk_layout_row_push(ctx, 0.4f);
         nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE, html_preview, strlen(html_preview) + 1, nk_filter_ascii);
 
-        /* Show and handle the Open Project dialog */
+        // Show and handle the Open Project dialog
         if (show_open_project) {
-            /* Compute the position of the popup to put it in the center of the window */
+            // Compute the position of the popup to put it in the center of the window
             bounds.x = (window_width / 2) - (300 / 2);
             bounds.y = (window_height / 2) - (190 / 2);
             bounds.w = 300;
             bounds.h = 190;
 
-            /* The open project dialog that allows the user to set the project directory path */
+            // The open project dialog that allows the user to set the project directory path
             if (nk_popup_begin(ctx, NK_POPUP_DYNAMIC, "Open Project", NK_WINDOW_CLOSABLE, bounds))
             {
-                /* The path label */
+                // The path label
                 nk_layout_row_dynamic(ctx, 20, 1);
                 nk_label(ctx, "Project Directory:", NK_TEXT_LEFT);
 
-                /* The path entry box */
+                // The path entry box
                 nk_layout_row_dynamic(ctx, 25, 1);
                 nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX, file_path, sizeof(file_path), nk_filter_ascii);
 
@@ -224,12 +234,6 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                     }
                     else if (!check_for_buildup_files(contents)) {
                         printf("This directory does not appear to be a valid BuildUp directory.\nPlease try to open another directory.\n");
-                    }
-                    else {
-                        /* List the file directory */
-                        for (i = 0; i <= contents.listing_length; i++) {
-                            printf("File: %s\n", contents.dir_contents[i]);
-                        }
                     }
 
                     nk_popup_close(ctx);

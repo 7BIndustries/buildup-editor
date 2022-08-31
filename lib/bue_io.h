@@ -13,11 +13,37 @@
 char* new_path;
 DIR* open_dir;
 
+// Holds the types of files we are working with
+enum file_types {directory = 4, file = 8};
+
 // struct holding the listed directory contents and extra information
 struct directory_contents {
     char** dir_contents;
     int listing_length;
 };
+
+/******************************************************************************
+ * is_directory -- Determines whether or not a path specifies a directory or  *
+ *                 file.                                                      *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      dir_path -- A char pointer giving the path to the alleged directory.  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      A boolean specifying whether or not the object at the path is a       *
+ *      directory.                                                            *
+ *****************************************************************************/
+/*bool is_directory(const char* dir_path) {
+    // Holds the directory orfile info
+    struct stat statbuf;
+
+    // Run the stat, and return false if the file does not exist
+    if (stat(path, &statbuf) != 0)
+        return false;
+
+    // Tells the caller whether or not we have a directory
+    return S_ISDIR(statbuf.st_mode);
+}*/
 
 /******************************************************************************
  * directory_contents -- Collects the contents of the directory to pass back  *
@@ -45,6 +71,11 @@ struct directory_contents list_dir_contents(char* dir_path) {
             // Ignore hidden files and directories
             if (data->d_name[0] == '.')
                 continue;
+
+            // Make sure to only list files that we care about and directories
+            if (data->d_type != directory && !string_ends_with(data->d_name, ".md") && !string_ends_with(data->d_name, ".yaml")) {
+                continue;
+            }
 
             // If dir_contents has not be initialized, do that now. Otherwise expand it to hold the new values.
             if (size == -1) {

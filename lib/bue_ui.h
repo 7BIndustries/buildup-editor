@@ -129,7 +129,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
             // Button to open an existing project
             if (nk_menu_item_label(ctx, "OPEN PROJECT", NK_TEXT_LEFT)) {
-                printf("Opening existing project...\n");
+                // Open the popup later in this frame
                 show_open_project = nk_true;
             }
 

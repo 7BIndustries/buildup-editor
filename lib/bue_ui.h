@@ -10,25 +10,25 @@
 
 #include "bue_io.h"
 
-/*# define INCLUDE_STYLE*/
-#ifdef INCLUDE_STYLE
-/*set_style(ctx, THEME_WHITE);*/
-/*set_style(ctx, THEME_RED);*/
-/*set_style(ctx, THEME_BLUE);*/
-/*set_style(ctx, THEME_DARK);*/
-#endif
+// #define INCLUDE_STYLE
+// #ifdef INCLUDE_STYLE
+//set_style(ctx, THEME_WHITE);
+// set_style(ctx, THEME_RED);
+//set_style(ctx, THEME_BLUE);
+//set_style(ctx, THEME_DARK);
+// #endif
 
-int i;  /* Loop counter variable */
-char file_path[256];  /* Holds the selected file/folder path */
-char buffer[256];  /* Holds the BuildUp markdown text entered by the user */
-char html_preview[256];  /* Converted HTML text based on the markdown */
-struct directory_contents contents;  /* Listed directory contents */
+int i;  // Loop counter variable
+char file_path[256];  // Holds the selected file/folder path
+char buffer[256];  // Holds the BuildUp markdown text entered by the user
+char html_preview[256];  // Converted HTML text based on the markdowns
+struct directory_contents contents;  // Listed directory contents
 
-/* md4c flags for converting markdown to HTML */
+// md4c flags for converting markdown to HTML
 static unsigned parser_flags = 0;
 static unsigned renderer_flags = MD_HTML_FLAG_DEBUG;
 
-/* Popup dialog control flags */
+// Popup dialog control flags
 static int show_open_project = nk_false;
 
 /*
@@ -85,9 +85,9 @@ static bool check_for_buildup_files(struct directory_contents contents) {
     bool big_t_tools_found = false;
     bool small_t_tools_found = false;
 
-    /* Check for a few of the typical files */
+    // Check for a few of the typical files
     for (i = 0; i <= contents.listing_length; i++) {
-        /* Check to see if the current name matches the buildconf.yaml file */
+        // Check to see if the current name matches the buildconf.yaml file
         if (strcmp(contents.dir_contents[i], "buildconf.yaml") == 0) buildconf_found = true;
         if (strcmp(contents.dir_contents[i], "Parts.yaml") == 0) big_p_parts_found = true;
         if (strcmp(contents.dir_contents[i], "parts.yaml") == 0) small_p_parts_found = true;
@@ -95,14 +95,14 @@ static bool check_for_buildup_files(struct directory_contents contents) {
         if (strcmp(contents.dir_contents[i], "tools.yaml") == 0) small_t_tools_found = true;
     }
 
-    /* Make sure everything was found that is required */
+    // Make sure everything was found that is required
     result = buildconf_found && (big_p_parts_found || small_p_parts_found) && (big_t_tools_found || small_t_tools_found);
 
     return result;
 }
 
-int ret;  /* The return code for the markdown to HTML conversion */
-struct nk_rect bounds;  /* The bounds of the popup dialog */
+int ret;  // The return code for the markdown to HTML conversions
+struct nk_rect bounds;  // The bounds of the popup dialog
 
 /*
  * Responsible for creating the BuildUp Editor UI each frame.
@@ -114,54 +114,53 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
     if (nk_begin(ctx, "Main Window", nk_rect(0, 0, window_width, window_height),
         NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR))
     {
-        /* Application menu */
+        // Application menu
         nk_menubar_begin(ctx);
         nk_layout_row_begin(ctx, NK_STATIC, 25, 2);
         nk_layout_row_push(ctx, 45);
         if (nk_menu_begin_label(ctx, "FILE", NK_TEXT_LEFT, nk_vec2(120, 200))) {
-            /* Single column layout */
+            // Single column layout
             nk_layout_row_dynamic(ctx, 30, 1);
 
-            /* Button to create a new project */
+            // Button to create a new project
             if (nk_menu_item_label(ctx, "NEW PROJECT", NK_TEXT_LEFT)) {
                 printf("Creating new project...\n");
             }
 
-            /* Button to open an existing project */
+            // Button to open an existing project
             if (nk_menu_item_label(ctx, "OPEN PROJECT", NK_TEXT_LEFT)) {
                 printf("Opening existing project...\n");
                 show_open_project = nk_true;
             }
 
-            /* Button to save the current file and update the preview */
+            // Button to save the current file and update the preview
             if (nk_menu_item_label(ctx, "SAVE", NK_TEXT_LEFT)) {
-                /* Reset the HTML preview text for the new conversion text */
+                // Reset the HTML preview text for the new conversion text
                 html_preview[0] = '\0';
 
-                /* Convert the markdown to HTML */
+                // Convert the markdown to HTML
                 ret = md_html(buffer, (MD_SIZE)strlen(buffer), process_output, (void*) &buf_out, parser_flags, renderer_flags);
                 if (ret == -1) {
                     printf("The markdown failed to parse.\n");
                 }
             }
 
-            /* Button to export the project */
+            // Button to export the project
             if (nk_menu_item_label(ctx, "EXPORT", NK_TEXT_LEFT)) {
                 printf("Exporting project...\n");
             }
 
-            /* Button to close the app */
+            // Button to close the app
             if (nk_menu_item_label(ctx, "CLOSE", NK_TEXT_LEFT)) {
                 *running = 0;
             }
             nk_menu_end(ctx);
         }
 
-        /* Three column layout */
-        /*nk_layout_row_dynamic(ctx, window_height, 1);*/
+        // Three column layout
         nk_layout_row_begin(ctx, NK_DYNAMIC, window_height, 3);
 
-        /* Project tree structure */
+        // Project tree structure
         nk_layout_row_push(ctx, 0.2f);
         if (nk_group_begin(ctx, "Project", NK_WINDOW_BORDER)) {
             int selected[contents.listing_length];
@@ -169,7 +168,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 selected[i] = nk_false;
             }
 
-            /* Add the directory contents to the project tree */
+            // Add the directory contents to the project tree
             if (nk_tree_push(ctx, NK_TREE_NODE, "Project", NK_MAXIMIZED)) {
                 // Prevents an error when the program starts up with no project is selected
                 if (contents.listing_length > 0) {
@@ -218,14 +217,14 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 nk_layout_row_dynamic(ctx, 25, 1);
                 nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX, file_path, sizeof(file_path), nk_filter_ascii);
 
-                /* OK button allows user to submit the path information */
+                // OK button allows user to submit the path information
                 nk_layout_row_dynamic(ctx, 25, 3);
                 if (nk_button_label(ctx, "OK")) {
                     show_open_project = nk_false;
-                    /* Collect the user's given path contents so that we can work with them */
+                    // Collect the user's given path contents so that we can work with them
                     contents = list_dir_contents(file_path);
 
-                    /* If the user gave an invalid directory, let them know */
+                    // If the user gave an invalid directory, let them know
                     if (contents.listing_length == -2) {
                         printf("The directory you selected does not exist.\nPlease try to open another directory.\n");
                     }
@@ -239,7 +238,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                     nk_popup_close(ctx);
                 }
 
-                /* Cancel button allows the user to skip submitting the path information */
+                // Cancel button allows the user to skip submitting the path information
                 if (nk_button_label(ctx, "Cancel")) {
                     show_open_project = nk_false;
                     nk_popup_close(ctx);
@@ -249,7 +248,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             else {
                 show_open_project = nk_false;
 
-                /* Reset the file path string to prevent any old text frorm being reused */
+                // Reset the file path string to prevent any old text frorm being reused
                 file_path[0] = '\0';
             }
         }

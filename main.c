@@ -56,12 +56,12 @@ struct XWindow {
     Atom wm_delete_window;
 };
 
-long dt;  /* Difference between the start of a timer and the current time */
-long started;  /* Milliseconds when the timer was started */
-int running = 1;  /* Setting to zero will shut down the app */
-XWindow xw;  /* Struct representing an XLib window */
-XEvent evt;  /* X11 event struct */
-struct nk_context *ctx;  /* Nuklear UI context struct */
+long dt;  // Difference between the start of a timer and the current time
+long started;  // Milliseconds when the timer was started
+int running = 1;  // Setting to zero will shut down the app
+XWindow xw;  // Struct representing an XLib window
+XEvent evt;  // X11 event struct
+struct nk_context *ctx;  // Nuklear UI context struct
 
 static void die(const char *fmt, ...)
 {
@@ -79,7 +79,7 @@ static void die(const char *fmt, ...)
 struct nk_context* ui_init(struct XWindow xw) {
     struct nk_context *ctx;
 
-    /* GUI */
+    // GUI
     xw.font = nk_xfont_create(xw.dpy, "fixed");
     ctx = nk_xlib_init(xw.font, xw.dpy, xw.screen, xw.win, xw.width, xw.height);
 
@@ -88,7 +88,7 @@ struct nk_context* ui_init(struct XWindow xw) {
 
 int main(void)
 {
-    /* X11 */
+    // X11
     memset(&xw, 0, sizeof xw);
     xw.dpy = XOpenDisplay(NULL);
     if (!xw.dpy) die("Could not open a display; perhaps $DISPLAY is not set?");
@@ -115,17 +115,17 @@ int main(void)
     xw.width = (unsigned int)xw.attr.width;
     xw.height = (unsigned int)xw.attr.height;
 
-    /* Initialize the Nuklear GUI */
+    // Initialize the Nuklear GUI - encapsulated for use across OSes
     ctx = ui_init(xw);
 
     while (running)
     {
-        /* Need the current size of the XWindow to scale the Nuklear window to it */
+        // Need the current size of the XWindow to scale the Nuklear window to it
         XGetWindowAttributes(xw.dpy, xw.win, &xw.attr);
         xw.width = (unsigned int)xw.attr.width;
         xw.height = (unsigned int)xw.attr.height;
 
-        /* Input */
+        // Input
         started = timestamp();
         nk_input_begin(ctx);
         while (XPending(xw.dpy)) {
@@ -136,15 +136,15 @@ int main(void)
         }
         nk_input_end(ctx);
 
-        /* Render the Nuklear UI */
+        // Render the Nuklear UI
         ui_do(ctx, xw.attr.width, xw.attr.height, &running);
 
-        /* Draw */
+        // Draw
         XClearWindow(xw.dpy, xw.win);
         nk_xlib_render(xw.win, nk_rgb(30,30,30));
         XFlush(xw.dpy);
 
-        /* Timing */
+        // Timing
         dt = timestamp() - started;
         if (dt < DTIME)
             sleep_for(DTIME - dt);

@@ -34,11 +34,10 @@
 
 #include "lib/bue_util.h"
 #include "lib/bue_ui.h"
-/*#include "lib/bue_io.h"*/
 
-#define DTIME           20
-#define WINDOW_WIDTH    800
-#define WINDOW_HEIGHT   600
+const int DTIME = 20;  // UI sleep threshold
+const int WINDOW_WIDTH = 800;  // Initial window width
+const int WINDOW_HEIGHT = 600;  // Initial window height
 
 typedef struct XWindow XWindow;
 struct XWindow {

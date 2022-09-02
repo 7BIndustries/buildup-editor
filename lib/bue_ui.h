@@ -23,6 +23,12 @@ char file_path[256];  // Holds the selected file/folder path
 char buffer[256];  // Holds the BuildUp markdown text entered by the user
 char html_preview[256];  // Converted HTML text based on the markdowns
 struct directory_contents contents;  // Listed directory contents
+int ret;  // The return code for the markdown to HTML conversions
+struct nk_rect bounds;  // The bounds of the popup dialog
+/* The disadvantage of these two arrays is that it adds state tracking to the
+   Nuklear tree, but it meets the UX goals of this UI */
+int selected[255];  // The selected states of the project tree items
+int prev_selected[255];  // The previously selected states of the tree items
 
 // md4c flags for converting markdown to HTML
 static unsigned parser_flags = 0;
@@ -30,6 +36,24 @@ static unsigned renderer_flags = MD_HTML_FLAG_DEBUG;
 
 // Popup dialog control flags
 static int show_open_project = nk_false;
+
+// X11 window representation
+// Linux only
+typedef struct XWindow XWindow;
+struct XWindow {
+    Display *dpy;
+    Window root;
+    Visual *vis;
+    Colormap cmap;
+    XWindowAttributes attr;
+    XSetWindowAttributes swa;
+    Window win;
+    int screen;
+    XFont *font;
+    unsigned int width;
+    unsigned int height;
+    Atom wm_delete_window;
+};
 
 /*
  * Buffer struct that the converted HTML text is stored in.
@@ -101,8 +125,24 @@ static bool check_for_buildup_files(struct directory_contents contents) {
     return result;
 }
 
-int ret;  // The return code for the markdown to HTML conversions
-struct nk_rect bounds;  // The bounds of the popup dialog
+/*
+ * Handles some initialization functions of the Nuklear based UI.
+ */
+struct nk_context* ui_init(struct XWindow xw) {
+    struct nk_context *ctx;
+
+    // GUI
+    xw.font = nk_xfont_create(xw.dpy, "fixed");
+    ctx = nk_xlib_init(xw.font, xw.dpy, xw.screen, xw.win, xw.width, xw.height);
+
+    // Initialize the array that stores the selected states of tree items
+    for (int i = 0; i < 255; i++) {
+        selected[i] = nk_false;
+        prev_selected[i] = nk_false;
+    }
+
+    return ctx;
+}
 
 /*
  * Responsible for creating the BuildUp Editor UI each frame.
@@ -163,25 +203,36 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         // Project tree structure
         nk_layout_row_push(ctx, 0.2f);
         if (nk_group_begin(ctx, "Project", NK_WINDOW_BORDER)) {
-            int selected[contents.listing_length];
-            for (i = 0; i < contents.listing_length; i++) {
-                selected[i] = nk_false;
-            }
-
             // Add the directory contents to the project tree
             if (nk_tree_push(ctx, NK_TREE_NODE, "Project", NK_MAXIMIZED)) {
                 // Prevents an error when the program starts up with no project is selected
                 if (contents.listing_length > 0) {
+                    // Add a selectable label for each directory item
                     for (i = 0; i <= contents.listing_length; i++) {
+                        // Add the label to the tree with its selected state
                         nk_selectable_label(ctx, contents.dir_contents[i], NK_TEXT_LEFT, &selected[i]);
                     }
                 }
 
                 // Work out which tree item, if any, has been selected
-                for (i = 0; i < contents.listing_length; i++) {
-                    if (selected[i]) {
+                for (i = 0; i <= contents.listing_length; i++) {
+                    // If the item was previously selected, deselect it
+                    if (selected[i] == nk_true && prev_selected[i] == nk_false) {
                         printf("%s is selected.\n", contents.dir_contents[i]);
+
+                        // Deselect all other tree items
+                        for (int j = 0; j <= contents.listing_length; j++) {
+                            // Make sure we are not deseleting the newly selected item
+                            if (j == i)
+                                continue;
+
+                            // Deselect the current item
+                            selected[j] = nk_false;
+                        }
                     }
+
+                    // Save the the current state to use it again next frame
+                    prev_selected[i] = selected[i];
                 }
 
                 nk_tree_pop(ctx);

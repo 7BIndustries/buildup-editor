@@ -39,22 +39,6 @@ const int DTIME = 20;  // UI sleep threshold
 const int WINDOW_WIDTH = 800;  // Initial window width
 const int WINDOW_HEIGHT = 600;  // Initial window height
 
-typedef struct XWindow XWindow;
-struct XWindow {
-    Display *dpy;
-    Window root;
-    Visual *vis;
-    Colormap cmap;
-    XWindowAttributes attr;
-    XSetWindowAttributes swa;
-    Window win;
-    int screen;
-    XFont *font;
-    unsigned int width;
-    unsigned int height;
-    Atom wm_delete_window;
-};
-
 long dt;  // Difference between the start of a timer and the current time
 long started;  // Milliseconds when the timer was started
 int running = 1;  // Setting to zero will shut down the app
@@ -70,19 +54,6 @@ static void die(const char *fmt, ...)
     va_end(ap);
     fputs("\n", stderr);
     exit(EXIT_FAILURE);
-}
-
-/*
- * Handles some initialization functions of the Nuklear based UI.
- */
-struct nk_context* ui_init(struct XWindow xw) {
-    struct nk_context *ctx;
-
-    // GUI
-    xw.font = nk_xfont_create(xw.dpy, "fixed");
-    ctx = nk_xlib_init(xw.font, xw.dpy, xw.screen, xw.win, xw.width, xw.height);
-
-    return ctx;
 }
 
 int main(void)

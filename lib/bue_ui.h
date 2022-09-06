@@ -93,6 +93,9 @@ static void membuf_init(struct membuffer* buf, MD_SIZE new_asize)
  *****************************************************************************/
 static void process_output(const MD_CHAR* text, MD_SIZE size, void* userdata)
 {
+    // To get rid of the unused variable warning for userdata
+    if (userdata == NULL) printf("No user data passed for markdown processor.\n");
+
     strncat(html_preview, text, size);
 }
 
@@ -209,8 +212,21 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 if (contents.listing_length > 0) {
                     // Add a selectable label for each directory item
                     for (i = 0; i <= contents.listing_length; i++) {
-                        // Add the label to the tree with its selected state
-                        nk_selectable_label(ctx, contents.dir_contents[i], NK_TEXT_LEFT, &selected[i]);
+                        // The user does not need to see the file/dir markers at the end of the string
+                        char* new_path = strdup(contents.dir_contents[i]);
+
+                        // If we have a directory, set it up as another tree node
+                        if (contents.listing_type[i] == directory) {
+                            if (nk_tree_element_push(ctx, NK_TREE_NODE, new_path, NK_MINIMIZED, &selected[i])) {
+                                nk_layout_row_static(ctx, 18, 100, 1);
+                                nk_selectable_label(ctx, "  Placeholder", NK_TEXT_LEFT, &selected[i]);
+                                nk_tree_element_pop(ctx);
+                            }
+                        }
+                        else {
+                            // Add the label to the tree with its selected state
+                            nk_selectable_label(ctx, new_path, NK_TEXT_LEFT, &selected[i]);
+                        }
                     }
                 }
 
@@ -272,8 +288,8 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 nk_layout_row_dynamic(ctx, 25, 3);
                 if (nk_button_label(ctx, "OK")) {
                     show_open_project = nk_false;
-                    // Collect the user's given path contents so that we can work with them
-                    contents = list_dir_contents(file_path);
+                    // Get the sorted contents at the specified path
+                    contents = list_dir_contents(file_path, true);
 
                     // If the user gave an invalid directory, let them know
                     if (contents.listing_length == -2) {

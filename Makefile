@@ -10,4 +10,4 @@ OBJ = $(SRC:.c=.o)
 $(BIN): main.c
 	@mkdir -p bin
 	rm -f bin/$(BIN) $(OBJS)
-	$(CC) $(SRC) $(CFLAGS) -D_POSIX_C_SOURCE=200809L -o bin/$(BIN) -I./external -I./lib -lX11 -lm
+	$(CC) -g $(SRC) $(CFLAGS) -D_POSIX_C_SOURCE=200809L -o bin/$(BIN) -I./external -I./lib -lX11 -lm

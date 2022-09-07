@@ -95,7 +95,7 @@ struct directory_contents list_dir_contents(char* dir_path, bool sort) {
                 continue;
 
             // Make sure to only list files that we care about and directories
-            if (data->d_type != directory && !string_ends_with(data->d_name, ".md") && !string_ends_with(data->d_name, ".yaml")) {
+            if (data->d_type != directory && !string_ends_with(data->d_name, ".md") && !string_ends_with(data->d_name, ".yaml") && !string_ends_with(data->d_name, ".png") && !string_ends_with(data->d_name, ".jpeg") && !string_ends_with(data->d_name, ".jpg")) {
                 continue;
             }
 
@@ -185,8 +185,10 @@ struct directory_contents list_dir_contents(char* dir_path, bool sort) {
         }
 
         // Sort the directory and file entries so they are in alphabetical order
-        qsort(dirs_listing, num_dirs, sizeof(*dirs_listing), sort_compare);
-        qsort(files_listing, num_files, sizeof(*files_listing), sort_compare);
+        if (num_dirs >= 0)
+            qsort(dirs_listing, num_dirs, sizeof(*dirs_listing), sort_compare);
+        if (num_files >= 0)
+            qsort(files_listing, num_files, sizeof(*files_listing), sort_compare);
 
         // Refill the dir_contents array with the sorted entries
         for (int i = 0; i <= num_dirs; i++) {

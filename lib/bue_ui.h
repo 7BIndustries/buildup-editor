@@ -23,6 +23,7 @@ char file_path[256];  // Holds the selected file/folder path
 char buffer[256];  // Holds the BuildUp markdown text entered by the user
 char html_preview[256];  // Converted HTML text based on the markdowns
 struct directory_contents contents;  // Listed directory contents
+struct directory_contents temp_contents;  // Directory contents for the expanded directory
 int ret;  // The return code for the markdown to HTML conversions
 struct nk_rect bounds;  // The bounds of the popup dialog
 /* The disadvantage of these two arrays is that it adds state tracking to the
@@ -218,8 +219,17 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                         // If we have a directory, set it up as another tree node
                         if (contents.listing_type[i] == directory) {
                             if (nk_tree_element_push(ctx, NK_TREE_NODE, new_path, NK_MINIMIZED, &selected[i])) {
-                                nk_layout_row_static(ctx, 18, 100, 1);
-                                nk_selectable_label(ctx, "  Placeholder", NK_TEXT_LEFT, &selected[i]);
+                                // If the directory node was just expanded, dynamically load its contents
+                                if (temp_contents.listing_length >= 0) {
+                                    // Do the loading of the directory's contents
+                                    temp_contents = list_dir_contents("/home/jwright/docs/images/", true);
+
+                                    // If there are any directory contents to list, add them
+                                    for (int j = 0; j < temp_contents.listing_length; j++) {
+                                        nk_selectable_label(ctx, temp_contents.dir_contents[j], NK_TEXT_LEFT, &selected[i]);
+                                    }
+                                }
+
                                 nk_tree_element_pop(ctx);
                             }
                         }

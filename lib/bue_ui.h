@@ -100,35 +100,6 @@ static void process_output(const MD_CHAR* text, MD_SIZE size, void* userdata)
     strncat(html_preview, text, size);
 }
 
-
-/*
- * Allows a check to make sure that a few needed project files are present
- * in the directory selected by the user.
- */
-static bool check_for_buildup_files(struct directory_contents contents) {
-    bool result = false;
-    bool buildconf_found = false;
-    bool big_p_parts_found = false;
-    bool small_p_parts_found = false;
-    bool big_t_tools_found = false;
-    bool small_t_tools_found = false;
-
-    // Check for a few of the typical files
-    for (i = 0; i <= contents.listing_length; i++) {
-        // Check to see if the current name matches the buildconf.yaml file
-        if (strcmp(contents.dir_contents[i], "buildconf.yaml") == 0) buildconf_found = true;
-        if (strcmp(contents.dir_contents[i], "Parts.yaml") == 0) big_p_parts_found = true;
-        if (strcmp(contents.dir_contents[i], "parts.yaml") == 0) small_p_parts_found = true;
-        if (strcmp(contents.dir_contents[i], "Tools.yaml") == 0) big_t_tools_found = true;
-        if (strcmp(contents.dir_contents[i], "tools.yaml") == 0) small_t_tools_found = true;
-    }
-
-    // Make sure everything was found that is required
-    result = buildconf_found && (big_p_parts_found || small_p_parts_found) && (big_t_tools_found || small_t_tools_found);
-
-    return result;
-}
-
 /*
  * Handles some initialization functions of the Nuklear based UI.
  */
@@ -299,17 +270,17 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 if (nk_button_label(ctx, "OK")) {
                     show_open_project = nk_false;
                     // Get the sorted contents at the specified path
-                    contents = list_dir_contents(file_path, true);
+                    contents = list_project_dir(file_path);
 
                     // If the user gave an invalid directory, let them know
                     if (contents.listing_length == -2) {
                         printf("The directory you selected does not exist.\nPlease try to open another directory.\n");
                     }
+                    else if (contents.listing_length == -3) {
+                        printf("This directory does not appear to be a valid BuildUp directory.\nPlease try to open another directory.\n");
+                    }
                     else if (contents.listing_length <= 0) {
                         printf("No project files were found, please try to open another directory.\n");
-                    }
-                    else if (!check_for_buildup_files(contents)) {
-                        printf("This directory does not appear to be a valid BuildUp directory.\nPlease try to open another directory.\n");
                     }
 
                     nk_popup_close(ctx);

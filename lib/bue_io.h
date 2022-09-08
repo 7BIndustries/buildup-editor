@@ -25,32 +25,45 @@ struct directory_contents {
 };
 
 /******************************************************************************
- * is_directory -- Determines whether or not a path specifies a directory or  *
- *                 file.                                                      *
+ * check_for_buildup_files -- Makes a check to be sure that a few needed      *
+ *                            project files are present in the directory      *
+ *                            selected by the caller.                         *
  *                                                                            *
  * Parameters                                                                 *
- *      dir_path -- A char pointer giving the path to the alleged directory.  *
+ *      contents -- struct listing the contents of the directory that is      *
+ *                  alleged to be a BuildUp project directory.                *
  *                                                                            *
  * Returns                                                                    *
- *      A boolean specifying whether or not the object at the path is a       *
- *      directory.                                                            *
+ *      A boolean defining whether or not the given directory is a BuildUp    *
+ *      project directory.                                                    *
  *****************************************************************************/
-/*bool is_directory(const char* dir_path) {
-    // Holds the directory orfile info
-    struct stat statbuf;
+static bool check_for_buildup_files(struct directory_contents contents) {
+    bool result = false;
+    bool buildconf_found = false;
+    bool big_p_parts_found = false;
+    bool small_p_parts_found = false;
+    bool big_t_tools_found = false;
+    bool small_t_tools_found = false;
 
-    // Run the stat, and return false if the file does not exist
-    if (stat(path, &statbuf) != 0)
-        return false;
+    // Check for a few of the typical files
+    for (int i = 0; i <= contents.listing_length; i++) {
+        // Check to see if the current name matches the buildconf.yaml file
+        if (strcmp(contents.dir_contents[i], "buildconf.yaml") == 0) buildconf_found = true;
+        if (strcmp(contents.dir_contents[i], "Parts.yaml") == 0) big_p_parts_found = true;
+        if (strcmp(contents.dir_contents[i], "parts.yaml") == 0) small_p_parts_found = true;
+        if (strcmp(contents.dir_contents[i], "Tools.yaml") == 0) big_t_tools_found = true;
+        if (strcmp(contents.dir_contents[i], "tools.yaml") == 0) small_t_tools_found = true;
+    }
 
-    // Tells the caller whether or not we have a directory
-    return S_ISDIR(statbuf.st_mode);
-}*/
+    // Make sure everything was found that is required
+    result = buildconf_found && (big_p_parts_found || small_p_parts_found) && (big_t_tools_found || small_t_tools_found);
+
+    return result;
+}
 
 /******************************************************************************
  * sort_compare -- Allows an array of strings to be sorted in alpha-numeric   *
  *                 order.                                                     *
- *                                                                            *
  * Parameters                                                                 *
  *      str1 -- Char pointer for the first string to compare for the sort.    *
  *      str2 -- Char pointer for the second string to compare for the sort.   *
@@ -207,6 +220,34 @@ struct directory_contents list_dir_contents(char* dir_path, bool sort) {
 
     // Make sure the directory resource is closed if we sucessfully got it open.
     if (open_dir) closedir(open_dir);
+
+    return contents;
+}
+
+/******************************************************************************
+ * list_project_dir -- List all of the directories and files that are present *
+ *                     in the given project directory.                        *
+ * Parameters                                                                 *
+ *      dir_path -- The path to the project directory.                        *
+ *                                                                            *
+ * Returns                                                                    *
+ *      A struct holding the project directory listing and additional         *
+ *      information about the listing items.                                  *
+ *****************************************************************************/
+struct directory_contents list_project_dir(char* dir_path) {
+    struct directory_contents contents;  // The strings of the directory contents
+
+    // Get the sorted listing of the root project directory
+    contents = list_dir_contents(dir_path, true);
+
+    // Make sure that we are dealing with a BuildUp project directory
+    if (!check_for_buildup_files(contents)) {
+        contents.listing_length = -3;
+    }
+
+    // Check to see if there were any errors with the listing
+    if (contents.listing_length < 0)
+        return contents;
 
     return contents;
 }

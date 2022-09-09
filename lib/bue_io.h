@@ -10,8 +10,19 @@
 #include <dirent.h>
 #include <errno.h>
 
-char* new_path;
-DIR* open_dir;
+/* Filesystem path separators vary by OS */
+#ifdef __linux__
+    const char* PATH_SEP = "/";  // The filesystem path separator for Linux
+#elif defined __unix__
+    const char* PATH_SEP = "/";  // The filesystem path separator for this Unix
+#elif defined _WIN32
+    const char* PATH_SEP = "\\";  // The filesystem path separator for this Windows
+#elif defined __APPLE__ && __MACH__
+    const char* PATH_SEP = "/";  // The filesystem path separator for this OS
+#endif
+
+char* new_path;  // String of the path to the project directory
+DIR* open_dir;  // DIRENT struct holding information on the open directory
 
 // Holds the types of files we are working with
 enum file_types {directory = 4, file = 8};
@@ -23,6 +34,24 @@ struct directory_contents {
     int listing_type[255];
     short parent_dir[255];
 };
+
+/******************************************************************************
+ * dir_free_list -- Frees the memory associated with the directory listing.   *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      list -- The array of strings holding the directory listing.           *
+ *      size -- The length of the array.                                      *
+ *                                                                            *
+ * Returns                                                                    *
+ *      void                                                                  *
+ *****************************************************************************/
+static void dir_free_list(char **list, size_t size)
+{
+    size_t i;
+    for (i = 0; i < size; ++i)
+        free(list[i]);
+    free(list);
+}
 
 /******************************************************************************
  * check_for_buildup_files -- Makes a check to be sure that a few needed      *
@@ -236,9 +265,31 @@ struct directory_contents list_dir_contents(char* dir_path, bool sort) {
  *****************************************************************************/
 struct directory_contents list_project_dir(char* dir_path) {
     struct directory_contents contents;  // The strings of the directory contents
+    struct directory_contents temp_contents;  // The strings of sub-directory contents
 
     // Get the sorted listing of the root project directory
     contents = list_dir_contents(dir_path, true);
+
+    // Insert any subdirectory contents into the main contents list
+    for (int i = 0; i <= contents.listing_length; i++) {
+        // Make sure we are dealing with a directory
+        if (contents.listing_type[i] == directory) {
+            /* Assemble the path of this sub-directory */
+            char subdir_path[1024];
+            subdir_path[0] = '\0';
+            char* new_path = contents.dir_contents[0];
+            strcat(subdir_path, dir_path);
+            strcat(subdir_path, PATH_SEP);
+            strcat(subdir_path, new_path);
+
+            // List the subdirectory and insert its contents in the main listing
+            temp_contents = list_dir_contents(subdir_path, true);
+            for (int i = 0; i <= temp_contents.listing_length; i++) {
+                printf("%s\n", temp_contents.dir_contents[i]);
+            }
+            dir_free_list(temp_contents.dir_contents, temp_contents.listing_length);
+        }
+    }
 
     // Make sure that we are dealing with a BuildUp project directory
     if (!check_for_buildup_files(contents)) {

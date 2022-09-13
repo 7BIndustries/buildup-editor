@@ -5,8 +5,8 @@
  * License: Apache 2.0                                                        *
  * ***************************************************************************/
 
-#include <stdio.h>
-#include <string.h>
+// #include <stdio.h>
+// #include <string.h>
 #include <dirent.h>
 #include <errno.h>
 
@@ -31,6 +31,7 @@ enum file_types {directory = 4, file = 8};
 struct directory_contents {
     char** dir_contents;
     int listing_length;
+    int listing_capacity;
     int listing_type[255];
     short parent_dir[255];
 };
@@ -122,8 +123,10 @@ int sort_compare(const void *str1, const void *str2) {
  *****************************************************************************/
 struct directory_contents list_dir_contents(char* dir_path, bool sort) {
     int size = -1;  // The size (length) of the array holding the directory contents
-    size_t capacity = 32;  // The size (in bytes) of the array holding the directory contents
     struct directory_contents contents;  // The strings of the directory contents
+
+    // Keep track of the size of this listing
+    contents.listing_capacity = 32;
 
     // Open the directory and make sure there was not a problem
     open_dir = opendir(dir_path);
@@ -144,13 +147,13 @@ struct directory_contents list_dir_contents(char* dir_path, bool sort) {
             // If dir_contents has not be initialized, do that now. Otherwise expand it to hold the new values.
             if (size == -1) {
                 size = 0;
-                contents.dir_contents = (char**)calloc(sizeof(char*), capacity);
+                contents.dir_contents = (char**)calloc(sizeof(char*), contents.listing_capacity);
             }
             else {
                 // Make room for the new directory entry
                 size++;
-                capacity = capacity * 2;
-                contents.dir_contents = (char**)realloc(contents.dir_contents, capacity * sizeof(char*));
+                contents.listing_capacity = contents.listing_capacity * 2;
+                contents.dir_contents = (char**)realloc(contents.dir_contents, contents.listing_capacity * sizeof(char*));
             }
 
             // Add the new directory entry to the directory listing array
@@ -270,8 +273,11 @@ struct directory_contents list_project_dir(char* dir_path) {
     // Get the sorted listing of the root project directory
     contents = list_dir_contents(dir_path, true);
 
+    // This listing length may change, so save the current value for use later
+    int list_len = contents.listing_length;
+
     // Insert any subdirectory contents into the main contents list
-    for (int i = 0; i <= contents.listing_length; i++) {
+    for (int i = 0; i <= list_len; i++) {
         // Make sure we are dealing with a directory
         if (contents.listing_type[i] == directory) {
             /* Assemble the path of this sub-directory */
@@ -284,9 +290,20 @@ struct directory_contents list_project_dir(char* dir_path) {
 
             // List the subdirectory and insert its contents in the main listing
             temp_contents = list_dir_contents(subdir_path, true);
-            for (int i = 0; i <= temp_contents.listing_length; i++) {
-                printf("%s\n", temp_contents.dir_contents[i]);
+
+            for (int j = 0; j <= temp_contents.listing_length; j++) {
+                // Insert the subdirectory entry into the main listing
+                contents.listing_length++;
+                contents.listing_capacity = contents.listing_capacity * 2;
+                contents.dir_contents = (char**)realloc(contents.dir_contents, contents.listing_capacity * sizeof(char*));
+                contents.dir_contents[contents.listing_length] = strdup(temp_contents.dir_contents[j]);
+
+                // Save the directory that this listing belongs to
+                contents.parent_dir[contents.listing_length] = i;
+
+                // TODO: Move all the current array contents down by one so that the new entry can be inserted
             }
+
             dir_free_list(temp_contents.dir_contents, temp_contents.listing_length);
         }
     }

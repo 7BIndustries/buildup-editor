@@ -167,10 +167,10 @@ struct directory_contents list_dir_contents(char* dir_path, bool sort) {
             else {
                 contents.listing_type[size] = file;
             }
-        }
 
-        // Set which parent this entry belongs to
-        contents.parent_dir[size] = 0;
+            // Set which parent this entry belongs to
+            contents.parent_dir[size] = -1;
+        }
 
         // Store the size of the array in the first array element
         contents.listing_length = size;
@@ -277,7 +277,7 @@ struct directory_contents list_project_dir(char* dir_path) {
     int list_len = contents.listing_length;
 
     // Insert any subdirectory contents into the main contents list
-    for (int i = 0; i <= list_len; i++) {
+    for (int i = 0; i <= contents.listing_length; i++) {
         // Make sure we are dealing with a directory
         if (contents.listing_type[i] == directory) {
             /* Assemble the path of this sub-directory */
@@ -291,18 +291,35 @@ struct directory_contents list_project_dir(char* dir_path) {
             // List the subdirectory and insert its contents in the main listing
             temp_contents = list_dir_contents(subdir_path, true);
 
-            for (int j = 0; j <= temp_contents.listing_length; j++) {
+            int skip_ahead = 0;
+
+            // Step through the sublisting in reverse order so that it will come out in forward order after inserts
+            for (int j = temp_contents.listing_length; j >= 0; j--) {
                 // Insert the subdirectory entry into the main listing
                 contents.listing_length++;
                 contents.listing_capacity = contents.listing_capacity * 2;
                 contents.dir_contents = (char**)realloc(contents.dir_contents, contents.listing_capacity * sizeof(char*));
-                contents.dir_contents[contents.listing_length] = strdup(temp_contents.dir_contents[j]);
+
+                // Move everything else down
+                for(int k = contents.listing_length; k > i; k--) {
+                    contents.dir_contents[k + 1] = contents.dir_contents[k];
+                    contents.listing_type[k + 1] = contents.listing_type[k];
+                    contents.parent_dir[k + 1] = contents.parent_dir[k];
+                }
+
+                skip_ahead++;
+
+                // Save this subdirectory listing underneath the directory where it belongs
+                contents.dir_contents[i + 1] = strdup(temp_contents.dir_contents[j]);
 
                 // Save the directory that this listing belongs to
-                contents.parent_dir[contents.listing_length] = i;
+                contents.parent_dir[i + 1] = i;
 
-                // TODO: Move all the current array contents down by one so that the new entry can be inserted
+                // Save the type of this file/directory
+                contents.listing_type[i + 1] = temp_contents.listing_type[j];
             }
+
+            i += skip_ahead;
 
             dir_free_list(temp_contents.dir_contents, temp_contents.listing_length);
         }

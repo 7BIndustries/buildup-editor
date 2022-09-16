@@ -187,17 +187,50 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                         char* new_path = strdup(contents.dir_contents[i]);
 
                         // If we have a directory, set it up as another tree node
-                        if (contents.listing_type[i] == directory) {
+                        if (contents.listing_type[i] == directory && contents.parent_dir[i] == -1) {
                             // Nest all of the files and subdirectories properly in this directory
                             if (nk_tree_element_push(ctx, NK_TREE_NODE, new_path, NK_MINIMIZED, &selected[i])) {
-                                // nk_selectable_label(ctx, temp_contents.dir_contents[j], NK_TEXT_LEFT, &selected[i]);
+                                if (contents.listing_length > i && contents.parent_dir[i + 1] == i) {
+
+                                    // Keeps track of how many tree items we need to skip ahead after we are done with the loop
+                                    int skip_ahead = 0;
+
+                                    for(int j = i + 1; j < contents.listing_length; j++) {
+                                        // If we no longer have a child node, we should exit this loop
+                                        if (contents.parent_dir[j] != i)
+                                            break;
+
+                                        // If the current entry is a directory, set it up as another expandable tree node
+                                        if (contents.listing_type[j] == directory) {
+                                            // Expandable tree node
+                                            char* nested_1_tree_path = strdup(contents.dir_contents[j]);
+                                            if (nk_tree_element_push(ctx, NK_TREE_NODE, nested_1_tree_path, NK_MINIMIZED, &selected[j])) {
+                                                nk_selectable_label(ctx, "Placeholder", NK_TEXT_LEFT, &selected[j]);
+                                                nk_tree_element_pop(ctx);
+                                            }
+                                        }
+                                        else {
+                                            // Save this child node
+                                            nk_selectable_label(ctx, contents.dir_contents[j], NK_TEXT_LEFT, &selected[j]);
+                                        }
+
+                                        // Skip the main listing ahead
+                                        skip_ahead++;
+                                    }
+
+                                    // Move over all the sub-items we just entered
+                                    i += skip_ahead;
+                                }
 
                                 nk_tree_element_pop(ctx);
                             }
                         }
                         else {
-                            // Add the label to the tree with its selected state
-                            nk_selectable_label(ctx, new_path, NK_TEXT_LEFT, &selected[i]);
+                            // Make sure we are not adding the child of a sub-directory
+                            if (contents.parent_dir[i] == -1) {
+                                // Add the label to the tree with its selected state
+                                nk_selectable_label(ctx, new_path, NK_TEXT_LEFT, &selected[i]);
+                            }
                         }
                     }
                 }

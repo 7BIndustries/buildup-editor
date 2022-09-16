@@ -2,7 +2,8 @@
 BIN = buildup-editor
 
 # Flags
-CFLAGS += -std=c17 -Wall -Wextra -pedantic -Wno-unused-function -O2
+CFLAGS += -std=c17 -Wall -Wextra -pedantic -Wno-unused-function -O0
+# Optimization flag was -O2 but was changed for debugging
 
 SRC = main.c external/md4c.c external/md4c-html.c external/entity.c
 OBJ = $(SRC:.c=.o)

@@ -182,7 +182,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 // Prevents an error when the program starts up with no project is selected
                 if (contents.listing_length > 0) {
                     // Add a selectable label for each directory item
-                    for (i = 0; i <= contents.listing_length; i++) {
+                    for (i = 0; i < contents.listing_length; i++) {
                         // The user does not need to see the file/dir markers at the end of the string
                         char* new_path = strdup(contents.dir_contents[i]);
 

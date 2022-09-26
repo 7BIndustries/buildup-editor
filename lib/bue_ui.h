@@ -179,64 +179,38 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         if (nk_group_begin(ctx, "Project", NK_WINDOW_BORDER)) {
             // Add the directory contents to the project tree
             if (nk_tree_push(ctx, NK_TREE_NODE, "Project", NK_MAXIMIZED)) {
-                // Prevents an error when the program starts up with no project is selected
-                if (contents.listing_length > 0) {
-                    // Add a selectable label for each directory item
-                    for (i = 0; i < contents.listing_length; i++) {
-                        // The user does not need to see the file/dir markers at the end of the string
-                        char* new_path = strdup(contents.dir_contents[i]);
-
-                        // If we have a directory, set it up as another tree node
-                        if (contents.listing_type[i] == directory && contents.parent_dir[i] == -1) {
-                            // Nest all of the files and subdirectories properly in this directory
-                            if (nk_tree_element_push(ctx, NK_TREE_NODE, new_path, NK_MINIMIZED, &selected[i])) {
-                                if (contents.listing_length > i && contents.parent_dir[i + 1] == i) {
-
-                                    // Keeps track of how many tree items we need to skip ahead after we are done with the loop
-                                    int skip_ahead = 0;
-
-                                    for(int j = i + 1; j < contents.listing_length; j++) {
-                                        // If we no longer have a child node, we should exit this loop
-                                        if (contents.parent_dir[j] != i)
-                                            break;
-
-                                        // If the current entry is a directory, set it up as another expandable tree node
-                                        if (contents.listing_type[j] == directory) {
-                                            // Expandable tree node
-                                            char* nested_1_tree_path = strdup(contents.dir_contents[j]);
-                                            if (nk_tree_element_push(ctx, NK_TREE_NODE, nested_1_tree_path, NK_MINIMIZED, &selected[j])) {
-                                                nk_selectable_label(ctx, "Placeholder", NK_TEXT_LEFT, &selected[j]);
-                                                nk_tree_element_pop(ctx);
-                                            }
-                                        }
-                                        else {
-                                            // Save this child node
-                                            nk_selectable_label(ctx, contents.dir_contents[j], NK_TEXT_LEFT, &selected[j]);
-                                        }
-
-                                        // Skip the main listing ahead
-                                        skip_ahead++;
+                // See if there are any directories to add to the tree
+                if (contents.number_directories > 0) {
+                    for (i = 0; i < contents.number_directories; i++) {
+                        if (nk_tree_element_push(ctx, NK_TREE_NODE, contents.dirs[i]->name, NK_MINIMIZED, &contents.dirs[i]->selected)) {
+                            // Add this directory's dir contents
+                            for (int j = 0; j < contents.dirs[i]->number_directories; j++) {
+                                if (nk_tree_element_push(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->selected)) {
+                                    // Add this subdirectory's file contents
+                                    for (int k = 0; k < contents.dirs[i]->dirs[j]->number_files; k++) {
+                                        nk_selectable_label(ctx, contents.dirs[i]->dirs[j]->files[k].name, NK_TEXT_LEFT, &contents.dirs[i]->dirs[j]->files[k].selected);
                                     }
-
-                                    // Move over all the sub-items we just entered
-                                    i += skip_ahead;
+                                    nk_tree_element_pop(ctx);
                                 }
+                            }
+                            // Add this directory's file contents
+                            for (int j = 0; j < contents.dirs[i]->number_files; j++) {
+                                nk_selectable_label(ctx, contents.dirs[i]->files[j].name, NK_TEXT_LEFT, &contents.dirs[i]->files[j].selected);
+                            }
 
-                                nk_tree_element_pop(ctx);
-                            }
+                            nk_tree_element_pop(ctx);
                         }
-                        else {
-                            // Make sure we are not adding the child of a sub-directory
-                            if (contents.parent_dir[i] == -1) {
-                                // Add the label to the tree with its selected state
-                                nk_selectable_label(ctx, new_path, NK_TEXT_LEFT, &selected[i]);
-                            }
-                        }
+                    }
+                }
+                // See if there are any files to add to the tree
+                if (contents.number_files > 0) {
+                    for (i = 0; i < contents.number_files; i++) {
+                        nk_selectable_label(ctx, contents.files[i].name, NK_TEXT_LEFT, &contents.files[i].selected);
                     }
                 }
 
                 // Work out which tree item, if any, has been selected
-                for (i = 0; i <= contents.listing_length; i++) {
+                /*for (i = 0; i <= contents.listing_length; i++) {
                     // If the item was previously selected, deselect it
                     if (selected[i] == nk_true && prev_selected[i] == nk_false) {
                         printf("%s is selected.\n", contents.dir_contents[i]);
@@ -254,7 +228,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
                     // Save the the current state to use it again next frame
                     prev_selected[i] = selected[i];
-                }
+                }*/
 
                 nk_tree_pop(ctx);
             }
@@ -297,13 +271,13 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                     contents = list_project_dir(file_path);
 
                     // If the user gave an invalid directory, let them know
-                    if (contents.listing_length == -2) {
+                    if (contents.number_directories == -2) {
                         printf("The directory you selected does not exist.\nPlease try to open another directory.\n");
                     }
-                    else if (contents.listing_length == -3) {
+                    else if (contents.number_directories == -3) {
                         printf("This directory does not appear to be a valid BuildUp directory.\nPlease try to open another directory.\n");
                     }
-                    else if (contents.listing_length <= 0) {
+                    else if (contents.number_directories <= 0) {
                         printf("No project files were found, please try to open another directory.\n");
                     }
 

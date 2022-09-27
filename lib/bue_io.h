@@ -27,6 +27,9 @@ DIR* open_dir;  // DIRENT struct holding information on the open directory
 // Holds the types of files we are working with
 enum file_types {directory = 4, file = 8};
 
+// Holds the types of errors that we can see when working with directories
+enum dir_errors {no_error = 0, general_error = 1, does_not_exist = 2, not_a_buildup_directory = 3, dir_structure_too_deep = 4};
+
 struct file_entry {
     char* name;
     char* path;
@@ -38,6 +41,7 @@ typedef struct directory_contents {
     int number_directories;
     int number_files;
     int selected;
+    int error;
     struct directory_contents* dirs[500];
     struct file_entry files[500];
 } dir_contents;
@@ -134,6 +138,9 @@ dir_contents list_dir_contents(char* dir_path, bool sort) {
     contents.number_directories = -1;
     contents.number_files = -1;
 
+    // Start out with no error
+    contents.error = no_error;
+
     // Open the directory and make sure there was not a problem
     open_dir = opendir(dir_path);
     if (open_dir != NULL) {
@@ -183,12 +190,10 @@ dir_contents list_dir_contents(char* dir_path, bool sort) {
     }
     else if (ENOENT == errno) {
         // Set the size to a value that lets the caller know the directory does not exist
-        contents.number_directories = -2;
-        contents.number_files = -2;
+        contents.error = does_not_exist;
     }
     else {
-        contents.number_directories = -1;
-        contents.number_files = -1;
+        contents.error = general_error;
     }
 
     // If the caller has requested a sort, do that now
@@ -214,8 +219,11 @@ dir_contents list_dir_contents(char* dir_path, bool sort) {
  *****************************************************************************/
 dir_contents list_project_dir(char* dir_path) {
     dir_contents contents;  // The strings of the directory contents
-    dir_contents temp_level_1;  // The strings of first sub-directory contents
-    dir_contents temp_level_2;  // The strings of the second sub-directory contents
+    dir_contents temp_level_1;  // The first sub-directory's contents
+    dir_contents temp_level_2;  // The second sub-directory's contents
+    dir_contents temp_level_3;  // The third sub-directory's contents
+    dir_contents temp_level_4;  // The fourth sub-directory's contents
+    dir_contents temp_level_5;  // The fifth sub-directory's contents
 
     // Get the sorted listing of the root project directory
     contents = list_dir_contents(dir_path, true);
@@ -255,6 +263,82 @@ dir_contents list_project_dir(char* dir_path) {
                 if (temp_level_2.number_directories > 0) {
                     for (int k = 0; k < temp_level_2.number_directories; k++) {
                         contents.dirs[i]->dirs[j]->dirs[k] = temp_level_2.dirs[k];
+
+                        // List the third level directory's contents
+                        char sub_path_3[500];
+                        sub_path_3[0] = '\0';
+                        strcat(sub_path_3, sub_path_2);
+                        strcat(sub_path_3, PATH_SEP);
+                        strcat(sub_path_3, contents.dirs[i]->dirs[j]->dirs[k]->name);
+
+                        // List the third level subdirectory
+                        temp_level_3 = list_dir_contents(sub_path_3, true);
+
+                        // Add the third level subdirectory's contents to the main listing
+                        contents.dirs[i]->dirs[j]->dirs[k]->number_directories = temp_level_3.number_directories;
+                        contents.dirs[i]->dirs[j]->dirs[k]->number_files = temp_level_3.number_files;
+                        if (temp_level_3.number_directories > 0) {
+                            for (int l = 0; l < temp_level_3.number_directories; l++) {
+                                contents.dirs[i]->dirs[j]->dirs[k]->dirs[l] = temp_level_3.dirs[k];
+
+                                // Create the path to the forth level directory's contents
+                                char sub_path_4[500];
+                                sub_path_4[0] = '\0';
+                                strcat(sub_path_4, sub_path_3);
+                                strcat(sub_path_4, PATH_SEP);
+                                strcat(sub_path_4, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->name);
+
+                                // List the fourth level subdirectory
+                                temp_level_4 = list_dir_contents(sub_path_4, true);
+
+                                // Add the fourth level subdirectory's contents to the main listing
+                                contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->number_directories = temp_level_4.number_directories;
+                                contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->number_files = temp_level_4.number_files;
+                                if (temp_level_4.number_directories > 0) {
+                                    for (int m = 0; m < temp_level_4.number_directories; m++) {
+                                        contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m] = temp_level_4.dirs[m];
+
+                                        // Create the path to the fifth level directory's contents
+                                        char sub_path_5[500];
+                                        sub_path_5[0] = '\0';
+                                        strcat(sub_path_5, sub_path_4);
+                                        strcat(sub_path_5, PATH_SEP);
+                                        strcat(sub_path_5, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->name);
+
+                                        // List the fifth level subdirectory
+                                        temp_level_5 = list_dir_contents(sub_path_5, true);
+
+                                        // Add the fifth level subdirectory's contents to the main listing
+                                        contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->number_directories = temp_level_5.number_directories;
+                                        contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->number_files = temp_level_5.number_files;
+                                        if (temp_level_5.number_directories > 0) {
+                                            // Set an error for directory depth here
+                                            contents.error = dir_structure_too_deep;
+
+                                            // Add the directories of this sublisting to the main listing
+                                            for (int n = 0; n < temp_level_5.number_directories; n++) {
+                                                contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->dirs[n] = temp_level_5.dirs[n];
+                                            }
+                                        }
+                                        if (temp_level_5.number_files > 0) {
+                                            for (int n = 0; n < temp_level_5.number_files; n++) {
+                                                contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->files[n] = temp_level_5.files[n];
+                                            }
+                                        }
+                                    }
+                                }
+                                if (temp_level_4.number_files > 0) {
+                                    for (int m = 0; m < temp_level_4.number_files; m++) {
+                                        contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->files[m] = temp_level_4.files[m];
+                                    }
+                                }
+                            }
+                        }
+                        if (temp_level_3.number_files > 0) {
+                            for (int l = 0; l < temp_level_3.number_files; l++) {
+                                contents.dirs[i]->dirs[j]->dirs[k]->files[l] = temp_level_3.files[k];
+                            }
+                        }
                     }
                 }
                 if (temp_level_2.number_files > 0) {
@@ -273,8 +357,7 @@ dir_contents list_project_dir(char* dir_path) {
 
     // Make sure that we are dealing with a BuildUp project directory
     if (!check_for_buildup_files(contents)) {
-        contents.number_directories = -3;
-        contents.number_files = -3;
+        contents.error = not_a_buildup_directory;
     }
 
     return contents;

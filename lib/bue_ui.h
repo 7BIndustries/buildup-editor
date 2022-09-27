@@ -186,6 +186,39 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                             // Add this directory's dir contents
                             for (int j = 0; j < contents.dirs[i]->number_directories; j++) {
                                 if (nk_tree_element_push(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->selected)) {
+                                    // Add any subdirectories to the tree
+                                    for (int k = 0; k < contents.dirs[i]->dirs[j]->number_directories; k++) {
+                                        if (nk_tree_element_push(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->selected)) {
+                                            // Add this directory's dir contents
+                                            for (int l = 0; l < contents.dirs[i]->dirs[j]->dirs[k]->number_directories; l++) {
+                                                if (nk_tree_element_push(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->selected)) {
+                                                    // Add any subdirectories to the tree
+                                                    for (int m = 0; m < contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->number_directories; m++) {
+                                                        if (nk_tree_element_push(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->selected)) {
+                                                            // Add only this bottom subdirectory's files to the tree
+                                                            for (int n = 0; n < contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->number_files; n++) {
+                                                                nk_selectable_label(ctx, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->files[n].name, NK_TEXT_LEFT, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->files[n].selected);
+                                                            }
+                                                            nk_tree_element_pop(ctx);
+                                                        }
+                                                    }
+
+                                                    // Add this directory's files
+                                                    for (int m = 0; m < contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->number_files; m++) {
+                                                        nk_selectable_label(ctx, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->files[m].name, NK_TEXT_LEFT, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->files[m].selected);
+                                                    }
+                                                    nk_tree_element_pop(ctx);
+                                                }
+                                            }
+
+                                            // Add this directory's files
+                                            for (int l = 0; l < contents.dirs[i]->dirs[j]->dirs[k]->number_files; l++) {
+                                                nk_selectable_label(ctx, contents.dirs[i]->dirs[j]->dirs[k]->files[l].name, NK_TEXT_LEFT, &contents.dirs[i]->dirs[j]->dirs[k]->files[l].selected);
+                                            }
+                                            nk_tree_element_pop(ctx);
+                                        }
+                                    }
+
                                     // Add this subdirectory's file contents
                                     for (int k = 0; k < contents.dirs[i]->dirs[j]->number_files; k++) {
                                         nk_selectable_label(ctx, contents.dirs[i]->dirs[j]->files[k].name, NK_TEXT_LEFT, &contents.dirs[i]->dirs[j]->files[k].selected);
@@ -271,13 +304,19 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                     contents = list_project_dir(file_path);
 
                     // If the user gave an invalid directory, let them know
-                    if (contents.number_directories == -2) {
+                    if (contents.error == does_not_exist) {
                         printf("The directory you selected does not exist.\nPlease try to open another directory.\n");
                     }
-                    else if (contents.number_directories == -3) {
-                        printf("This directory does not appear to be a valid BuildUp directory.\nPlease try to open another directory.\n");
+                    else if (contents.error == not_a_buildup_directory) {
+                        printf("This directory either does not exist, or does not appear to be a valid BuildUp directory.\nPlease try to open another directory.\n");
                     }
-                    else if (contents.number_directories <= 0) {
+                    else if (contents.error == dir_structure_too_deep) {
+                        printf("The directory struucture of the project is deeper than 5 levels, and the listing will be truncated.\n");
+                    }
+                    else if (contents.error == general_error) {
+                        printf("A general error occurred when opening a project directory. Please make sure that you have permissions to read the directory.\n");
+                    }
+                    else if (contents.number_files <= 0) {
                         printf("No project files were found, please try to open another directory.\n");
                     }
 

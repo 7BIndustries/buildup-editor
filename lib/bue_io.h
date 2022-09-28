@@ -34,6 +34,7 @@ struct file_entry {
     char* name;
     char* path;
     int selected;
+    int prev_selected;
 };
 
 typedef struct directory_contents {
@@ -41,6 +42,7 @@ typedef struct directory_contents {
     int number_directories;
     int number_files;
     int selected;
+    int prev_selected;
     int error;
     struct directory_contents* dirs[500];
     struct file_entry files[500];
@@ -171,6 +173,7 @@ dir_contents list_dir_contents(char* dir_path, bool sort) {
                 contents.dirs[contents.number_directories - 1] = (dir_contents *)malloc(sizeof(dir_contents));
                 contents.dirs[contents.number_directories - 1]->name = strdup(data->d_name);
                 contents.dirs[contents.number_directories - 1]->selected = 0;
+                contents.dirs[contents.number_directories - 1]->prev_selected = 0;
             }
             else {
 
@@ -183,7 +186,7 @@ dir_contents list_dir_contents(char* dir_path, bool sort) {
                 }
 
                 // keep track of this file name
-                struct file_entry ent = {.name=strdup(data->d_name), .selected=0};
+                struct file_entry ent = {.name=strdup(data->d_name), .selected=0, .prev_selected=0};
                 contents.files[contents.number_files - 1] = ent;
             }
         }

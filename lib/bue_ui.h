@@ -150,9 +150,49 @@ void set_error_popup(char* message) {
     error_popup_active = true;
 }
 
-/*
- * Responsible for creating the BuildUp Editor UI each frame.
- */
+/******************************************************************************
+ * check_selected_tree_item -- Handles the logic for when a directory tree    *
+ *                             item is selected.                              *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      contents -- A pointer to the struct of directory contents to search   *
+ *                  for a selected tree item.                                 *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void check_selected_tree_item(struct directory_contents* contents, int i) {
+    // If the item was previously selected, deselect it
+    if (contents->files[i].selected == nk_true && contents->files[i].prev_selected == nk_false) {
+        printf("%s is selected.\n", contents->files[i].name);
+
+        // Deselect all other tree items
+        for (int j = 0; j <= contents->number_files; j++) {
+            // Make sure we are not deseleting the newly selected item
+            if (j == i)
+                continue;
+
+            // Deselect the current item
+            contents->files[j].selected = nk_false;
+        }
+    }
+
+    // Save the the current state to use it again next frame
+    contents->files[i].prev_selected = contents->files[i].selected;
+}
+
+/******************************************************************************
+ * ui_do -- Responsible for creating the BuildUp Editor UI each frame.        *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      ctx -- The Nuklear context struct                                     *
+ *      window_width -- int representing the current width of the window      *
+ *      window_height -- int representing the current height of the window    *
+ *      running -- int flag that allows this loop to be exited from outside   *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
 void ui_do(struct nk_context* ctx, int window_width, int window_height, int* running) {
     struct membuffer buf_out = {0};
     membuf_init(&buf_out, (MD_SIZE)(sizeof(buffer) + sizeof(buffer)/8 + 64));
@@ -275,25 +315,9 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 }
 
                 // Work out which tree item, if any, has been selected
-                /*for (i = 0; i <= contents.listing_length; i++) {
-                    // If the item was previously selected, deselect it
-                    if (selected[i] == nk_true && prev_selected[i] == nk_false) {
-                        printf("%s is selected.\n", contents.dir_contents[i]);
-
-                        // Deselect all other tree items
-                        for (int j = 0; j <= contents.listing_length; j++) {
-                            // Make sure we are not deseleting the newly selected item
-                            if (j == i)
-                                continue;
-
-                            // Deselect the current item
-                            selected[j] = nk_false;
-                        }
-                    }
-
-                    // Save the the current state to use it again next frame
-                    prev_selected[i] = selected[i];
-                }*/
+                for (i = 0; i <= contents.number_files; i++) {
+                    check_selected_tree_item(&contents, i);
+                }
 
                 nk_tree_pop(ctx);
             }

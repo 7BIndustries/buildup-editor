@@ -214,19 +214,19 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 // See if there are any directories to add to the tree
                 if (contents.number_directories > 0) {
                     for (i = 0; i < contents.number_directories; i++) {
-                        if (nk_tree_element_push(ctx, NK_TREE_NODE, contents.dirs[i]->name, NK_MINIMIZED, &contents.dirs[i]->selected)) {
+                        if (nk_tree_element_push_id(ctx, NK_TREE_NODE, contents.dirs[i]->name, NK_MINIMIZED, &contents.dirs[i]->selected, i)) {
                             // Add this directory's dir contents
                             for (int j = 0; j < contents.dirs[i]->number_directories; j++) {
-                                if (nk_tree_element_push(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->selected)) {
+                                if (nk_tree_element_push_id(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->selected, i+j)) {
                                     // Add any subdirectories to the tree
                                     for (int k = 0; k < contents.dirs[i]->dirs[j]->number_directories; k++) {
-                                        if (nk_tree_element_push(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->selected)) {
+                                        if (nk_tree_element_push_id(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->selected, i+j+k)) {
                                             // Add this directory's dir contents
                                             for (int l = 0; l < contents.dirs[i]->dirs[j]->dirs[k]->number_directories; l++) {
-                                                if (nk_tree_element_push(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->selected)) {
+                                                if (nk_tree_element_push_id(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->selected, i+j+k+l)) {
                                                     // Add any subdirectories to the tree
                                                     for (int m = 0; m < contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->number_directories; m++) {
-                                                        if (nk_tree_element_push(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->selected)) {
+                                                        if (nk_tree_element_push_id(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->selected, i+j+k+l+m)) {
                                                             // Add only this bottom subdirectory's files to the tree
                                                             for (int n = 0; n < contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->number_files; n++) {
                                                                 nk_selectable_label(ctx, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->files[n].name, NK_TEXT_LEFT, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->files[n].selected);

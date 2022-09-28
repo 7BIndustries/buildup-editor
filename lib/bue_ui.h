@@ -18,6 +18,9 @@
 //set_style(ctx, THEME_DARK);
 // #endif
 
+// Constants that hold mostly array lengths
+#define ERROR_MSG_MAX_LENGTH 1000
+
 int i;  // Loop counter variable
 char file_path[256];  // Holds the selected file/folder path
 char buffer[256];  // Holds the BuildUp markdown text entered by the user
@@ -29,6 +32,8 @@ struct nk_rect bounds;  // The bounds of the popup dialog
    Nuklear tree, but it meets the UX goals of this UI */
 int selected[255];  // The selected states of the project tree items
 int prev_selected[255];  // The previously selected states of the tree items
+bool error_popup_active = false;  // Tracks whether or not the error popup should be displayed
+char error_popup_message[ERROR_MSG_MAX_LENGTH];  // The message that will be displayed in the error popup
 
 // md4c flags for converting markdown to HTML
 static unsigned parser_flags = 0;
@@ -116,6 +121,33 @@ struct nk_context* ui_init(struct XWindow xw) {
     }
 
     return ctx;
+}
+
+/******************************************************************************
+ * set_error_popup -- Sets the error popup up for use by setting the message  *
+ *                    and then setting the flag to display the popup.         *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      message -- A string holding the message to display to the user.       *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void set_error_popup(char* message) {
+    // Make sure that the message does not overflow the string that is already defined for it
+    if (strlen(message) >= ERROR_MSG_MAX_LENGTH) {
+        printf("The error message was too long and will be truncated: %s", message);
+
+        // Truncate the message
+        message[ERROR_MSG_MAX_LENGTH - 1] = '\0';
+    }
+
+    // Reset the message string
+    error_popup_message[0] = '\0';
+    strcat(error_popup_message, message);
+
+    // Make sure that the dialog will be displayed
+    error_popup_active = true;
 }
 
 /*
@@ -305,19 +337,29 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
                     // If the user gave an invalid directory, let them know
                     if (contents.error == does_not_exist) {
-                        printf("The directory you selected does not exist.\nPlease try to open another directory.\n");
+                        set_error_popup("The directory you selected does not exist.\nPlease try to open another directory.");
+
+                        // printf("The directory you selected does not exist.\nPlease try to open another directory.\n");
                     }
                     else if (contents.error == not_a_buildup_directory) {
-                        printf("This directory either does not exist, or does not appear to be a valid BuildUp directory.\nPlease try to open another directory.\n");
+                        set_error_popup("This directory either does not exist, or\ndoes not appear to be a valid BuildUp\ndirectory. Please try to open another\ndirectory.");
+
+                        // printf("This directory either does not exist, or does not appear to be a valid BuildUp directory.\nPlease try to open another directory.\n");
                     }
                     else if (contents.error == dir_structure_too_deep) {
-                        printf("The directory struucture of the project is deeper than 5 levels, and the listing will be truncated.\n");
+                        set_error_popup("The directory structure of the project is\ndeeper than 5 levels, and the listing\nwill be truncated.");
+
+                        // printf("The directory struucture of the project is deeper than 5 levels, and the listing will be truncated.\n");
                     }
                     else if (contents.error == general_error) {
-                        printf("A general error occurred when opening a project directory. Please make sure that you have permissions to read the directory.\n");
+                        set_error_popup("A general error occurred when opening a\nproject directory. Please make sure that you\nhave permissions to read the directory.");
+
+                        // printf("A general error occurred when opening a project directory. Please make sure that you have permissions to read the directory.\n");
                     }
                     else if (contents.number_files <= 0) {
-                        printf("No project files were found, please try to open another directory.\n");
+                        set_error_popup("No project files were found, please try\nto open another directory.");
+
+                        // printf("No project files were found, please try to open another directory.\n");
                     }
 
                     nk_popup_close(ctx);
@@ -338,5 +380,31 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             }
         }
     }
+
+    // Handle the error popup
+    if (error_popup_active) {
+        // The position and size of the popup
+        struct nk_rect s = {(window_width / 2) - (290 / 2), (window_height / 2) - (150 / 2), 290, 150};
+
+        // Show a popup with the Error title
+        if (nk_popup_begin(ctx, NK_POPUP_STATIC, "Error", NK_WINDOW_TITLE, s))
+        {
+            // Displays the error message
+            nk_layout_row_dynamic(ctx, 70, 1);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_READ_ONLY|NK_EDIT_MULTILINE, error_popup_message, sizeof(error_popup_message), nk_filter_ascii);
+
+            // Displays the OK button to the user
+            nk_layout_row_dynamic(ctx, 25, 1);
+            if (nk_button_label(ctx, "OK")) {
+                error_popup_active = false;
+                nk_popup_close(ctx);
+            }
+            nk_popup_end(ctx);
+        }
+        else {
+            error_popup_active = false;
+        }
+    }
+
     nk_end(ctx);
 }

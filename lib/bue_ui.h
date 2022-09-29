@@ -151,6 +151,64 @@ void set_error_popup(char* message) {
 }
 
 /******************************************************************************
+ * deselect_all_files -- Helper function that deselects all the files in a    *
+ *                       given directory.                                     *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      dir -- directory_contents struct holding the files to be deselected.  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void deselect_all_files(struct directory_contents* dir) {
+    for (int i = 0; i < dir->number_files; i++) {
+        dir->files[i].selected = nk_false;
+        dir->files[i].prev_selected = nk_false;
+    }
+}
+
+/******************************************************************************
+ * deselect_entire_tree -- Toggles the selection flag for all the files in    *
+ *                         directory listing to off, so that just the current *
+ *                         selection will be highlighted.                     *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      None                                                                  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void deselect_entire_tree() {
+    // Deselect any level 0 files
+    deselect_all_files(&contents);
+
+    // Deselect any level 1 files
+    for (int i = 0; i < contents.number_directories; i++) {
+        deselect_all_files(contents.dirs[i]);
+
+        // Deselect any level 2 files
+        for (int j = 0; j < contents.dirs[i]->number_directories; j++) {
+            deselect_all_files(contents.dirs[i]->dirs[j]);
+
+            // Deselect any level 3 files
+            for (int k = 0; k < contents.dirs[i]->dirs[j]->number_directories; k++) {
+                deselect_all_files(contents.dirs[i]->dirs[j]->dirs[k]);
+
+                // Deselect any level 4 files
+                for (int l = 0; l < contents.dirs[i]->dirs[j]->dirs[k]->number_directories; l++) {
+                    deselect_all_files(contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]);
+
+                    // Deselect any level 5 files
+                    for (int m = 0; m < contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->number_directories; m++) {
+                        deselect_all_files(contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/******************************************************************************
  * check_selected_tree_item -- Handles the logic for when a directory tree    *
  *                             item is selected.                              *
  *                                                                            *
@@ -161,24 +219,22 @@ void set_error_popup(char* message) {
  * Returns                                                                    *
  *      Nothing                                                               *
  *****************************************************************************/
-void check_selected_tree_item(struct directory_contents* contents, int i) {
-    // If the item was previously selected, deselect it
-    if (contents->files[i].selected == nk_true && contents->files[i].prev_selected == nk_false) {
-        printf("%s is selected.\n", contents->files[i].name);
+void check_selected_tree_item(struct directory_contents* contents) {
+    for (i = 0; i < contents->number_files; i++) {
+        // If the item was previously selected, deselect it
+        if (contents->files[i].selected == nk_true && contents->files[i].prev_selected == nk_false) {
+            printf("%s is selected.\n", contents->files[i].name);
 
-        // Deselect all other tree items
-        for (int j = 0; j <= contents->number_files; j++) {
-            // Make sure we are not deseleting the newly selected item
-            if (j == i)
-                continue;
+            // Deselect all other tree items
+            deselect_entire_tree();
 
-            // Deselect the current item
-            contents->files[j].selected = nk_false;
+            // Reselect just this one entry
+            contents->files[i].selected = nk_true;
         }
-    }
 
-    // Save the the current state to use it again next frame
-    contents->files[i].prev_selected = contents->files[i].selected;
+        // Save the the current state to use it again next frame
+        contents->files[i].prev_selected = contents->files[i].selected;
+    }
 }
 
 /******************************************************************************
@@ -315,8 +371,31 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 }
 
                 // Work out which tree item, if any, has been selected
-                for (i = 0; i <= contents.number_files; i++) {
-                    check_selected_tree_item(&contents, i);
+                check_selected_tree_item(&contents);
+
+                // Check any level 1 directories to see if their files are selected
+                for (int i = 0; i < contents.number_directories; i++) {
+                    check_selected_tree_item(contents.dirs[i]);
+
+                    // Check any level 2 directories to see if their files are selected
+                    for (int j = 0; j < contents.dirs[i]->number_directories; j++) {
+                        check_selected_tree_item(contents.dirs[i]->dirs[j]);
+
+                        // Check any level 3 directories to see if their files are selected
+                        for (int k = 0; k < contents.dirs[i]->dirs[j]->number_directories; k++) {
+                            check_selected_tree_item(contents.dirs[i]->dirs[j]->dirs[k]);
+
+                            // Check any level 4 directories to see if their files are selected
+                            for (int l = 0; l < contents.dirs[i]->dirs[j]->dirs[k]->number_directories; l++) {
+                                check_selected_tree_item(contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]);
+
+                                // Check any level 5 directories to see if their files are selected
+                                for (int m = 0; m < contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->number_directories; m++) {
+                                    check_selected_tree_item(contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]);
+                                }
+                            }
+                        }
+                    }
                 }
 
                 nk_tree_pop(ctx);

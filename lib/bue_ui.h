@@ -223,7 +223,7 @@ void check_selected_tree_item(struct directory_contents* contents) {
     for (i = 0; i < contents->number_files; i++) {
         // If the item was previously selected, deselect it
         if (contents->files[i].selected == nk_true && contents->files[i].prev_selected == nk_false) {
-            printf("%s is selected.\n", contents->files[i].name);
+            printf("%s is selected.\n", contents->files[i].path);
 
             // Deselect all other tree items
             deselect_entire_tree();

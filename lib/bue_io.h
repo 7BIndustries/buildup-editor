@@ -185,8 +185,13 @@ dir_contents list_dir_contents(char* dir_path, bool sort) {
                     contents.number_files++;
                 }
 
-                // keep track of this file name
-                struct file_entry ent = {.name=strdup(data->d_name), .selected=0, .prev_selected=0};
+                // Keep track of this file name and path
+                char new_path[strlen(dir_path) + strlen(PATH_SEP) + strlen(data->d_name) + 1];
+                new_path[0] = '\0';
+                strcat(new_path, dir_path);
+                strcat(new_path, PATH_SEP);
+                strcat(new_path, data->d_name);
+                struct file_entry ent = {.name=strdup(data->d_name), .selected=0, .prev_selected=0, .path=strdup(new_path)};
                 contents.files[contents.number_files - 1] = ent;
             }
         }
@@ -234,7 +239,7 @@ dir_contents list_project_dir(char* dir_path) {
     // Step through all of the directories in the root project directory and get their listings
     for (int i = 0; i < contents.number_directories; i++) {
         // Assemble the subdirectory path
-        char sub_path[500];
+        char sub_path[strlen(dir_path) + strlen(PATH_SEP) + strlen(contents.dirs[i]->name) + 1];
         sub_path[0] = '\0';
         strcat(sub_path, dir_path);
         strcat(sub_path, PATH_SEP);
@@ -251,7 +256,7 @@ dir_contents list_project_dir(char* dir_path) {
                 contents.dirs[i]->dirs[j] = temp_level_1.dirs[j];
 
                 // List the second level directory's contents
-                char sub_path_2[500];
+                char sub_path_2[strlen(sub_path) + strlen(PATH_SEP) + strlen(contents.dirs[i]->dirs[j]->name) + 1];
                 sub_path_2[0] = '\0';
                 strcat(sub_path_2, sub_path);
                 strcat(sub_path_2, PATH_SEP);
@@ -268,7 +273,7 @@ dir_contents list_project_dir(char* dir_path) {
                         contents.dirs[i]->dirs[j]->dirs[k] = temp_level_2.dirs[k];
 
                         // List the third level directory's contents
-                        char sub_path_3[500];
+                        char sub_path_3[strlen(sub_path_2) + strlen(PATH_SEP) + strlen(contents.dirs[i]->dirs[j]->dirs[k]->name) + 1];
                         sub_path_3[0] = '\0';
                         strcat(sub_path_3, sub_path_2);
                         strcat(sub_path_3, PATH_SEP);
@@ -285,7 +290,7 @@ dir_contents list_project_dir(char* dir_path) {
                                 contents.dirs[i]->dirs[j]->dirs[k]->dirs[l] = temp_level_3.dirs[k];
 
                                 // Create the path to the forth level directory's contents
-                                char sub_path_4[500];
+                                char sub_path_4[strlen(sub_path_3) + strlen(PATH_SEP) + strlen(contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->name) + 1];
                                 sub_path_4[0] = '\0';
                                 strcat(sub_path_4, sub_path_3);
                                 strcat(sub_path_4, PATH_SEP);
@@ -302,7 +307,7 @@ dir_contents list_project_dir(char* dir_path) {
                                         contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m] = temp_level_4.dirs[m];
 
                                         // Create the path to the fifth level directory's contents
-                                        char sub_path_5[500];
+                                        char sub_path_5[strlen(sub_path_4) + strlen(PATH_SEP) + strlen(contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->name) + 1];
                                         sub_path_5[0] = '\0';
                                         strcat(sub_path_5, sub_path_4);
                                         strcat(sub_path_5, PATH_SEP);

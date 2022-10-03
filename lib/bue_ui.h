@@ -211,10 +211,6 @@ void deselect_entire_tree() {
  *****************************************************************************/
 void check_selected_tree_item(struct directory_contents* contents) {
     for (i = 0; i < contents->number_files; i++) {
-        // Make sure that we have not exceeded the maximum number of files
-        if (i >= MAX_NUM_FILES - 1)
-            break;
-
         // If the item was previously selected, deselect it
         if (contents->files[i].selected == nk_true && contents->files[i].prev_selected == nk_false) {
             printf("%s is selected.\n", contents->files[i].path);
@@ -304,45 +300,21 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 // See if there are any directories to add to the tree
                 if (contents.number_directories > 0) {
                     for (i = 0; i < contents.number_directories; i++) {
-                        // Make sure we do not push past the end of the max number of directories
-                        if (i >= MAX_NUM_DIRS - 1)
-                            break;
-
                         if (nk_tree_element_push_id(ctx, NK_TREE_NODE, contents.dirs[i]->name, NK_MINIMIZED, &contents.dirs[i]->selected, i)) {
                             // Add this directory's dir contents
                             for (int j = 0; j < contents.dirs[i]->number_directories; j++) {
-                                // Make sure we do not push past the end of the max number of directories
-                                if (i >= MAX_NUM_DIRS - 1)
-                                    break;
-
                                 if (nk_tree_element_push_id(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->selected, i+j)) {
                                     // Add any subdirectories to the tree
                                     for (int k = 0; k < contents.dirs[i]->dirs[j]->number_directories; k++) {
-                                        // Make sure we do not push past the end of the max number of directories
-                                        if (k >= MAX_NUM_DIRS - 1)
-                                            break;
-
                                         if (nk_tree_element_push_id(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->selected, i+j+k)) {
                                             // Add this directory's dir contents
                                             for (int l = 0; l < contents.dirs[i]->dirs[j]->dirs[k]->number_directories; l++) {
-                                                // Make sure we do not push past the end of the max number of directories
-                                                if (l >= MAX_NUM_DIRS - 1)
-                                                    break;
-
                                                 if (nk_tree_element_push_id(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->selected, i+j+k+l)) {
                                                     // Add any subdirectories to the tree
                                                     for (int m = 0; m < contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->number_directories; m++) {
-                                                        // Make sure we do not push past the end of the max number of directories
-                                                        if (m >= MAX_NUM_DIRS - 1)
-                                                            break;
-
                                                         if (nk_tree_element_push_id(ctx, NK_TREE_NODE, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->name, NK_MINIMIZED, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->selected, i+j+k+l+m)) {
                                                             // Add only this bottom subdirectory's files to the tree
                                                             for (int n = 0; n < contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->number_files; n++) {
-                                                                // Make sure we have not exceeded the maximum number of files that can be in a listing
-                                                                if (n >= MAX_NUM_FILES - 1)
-                                                                    break;
-
                                                                 nk_selectable_label(ctx, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->files[n].name, NK_TEXT_LEFT, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->files[n].selected);
                                                             }
                                                             nk_tree_element_pop(ctx);
@@ -351,10 +323,6 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
                                                     // Add this directory's files
                                                     for (int m = 0; m < contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->number_files; m++) {
-                                                        // Make sure we have not exceeded the maximum number of files that can be in a listing
-                                                        if (m >= MAX_NUM_FILES - 1)
-                                                            break;
-
                                                         nk_selectable_label(ctx, contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->files[m].name, NK_TEXT_LEFT, &contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->files[m].selected);
                                                     }
                                                     nk_tree_element_pop(ctx);
@@ -363,10 +331,6 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
                                             // Add this directory's files
                                             for (int l = 0; l < contents.dirs[i]->dirs[j]->dirs[k]->number_files; l++) {
-                                                // Make sure we have not exceeded the maximum number of files that can be in a listing
-                                                if (l >= MAX_NUM_FILES - 1)
-                                                    break;
-
                                                 nk_selectable_label(ctx, contents.dirs[i]->dirs[j]->dirs[k]->files[l].name, NK_TEXT_LEFT, &contents.dirs[i]->dirs[j]->dirs[k]->files[l].selected);
                                             }
                                             nk_tree_element_pop(ctx);
@@ -375,10 +339,6 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
                                     // Add this subdirectory's file contents
                                     for (int k = 0; k < contents.dirs[i]->dirs[j]->number_files; k++) {
-                                        // Make sure we have not exceeded the maximum number of files that can be in a listing
-                                        if (k >= MAX_NUM_FILES - 1)
-                                            break;
-
                                         nk_selectable_label(ctx, contents.dirs[i]->dirs[j]->files[k].name, NK_TEXT_LEFT, &contents.dirs[i]->dirs[j]->files[k].selected);
                                     }
                                     nk_tree_element_pop(ctx);
@@ -386,10 +346,6 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                             }
                             // Add this directory's file contents
                             for (int j = 0; j < contents.dirs[i]->number_files; j++) {
-                                // Make sure we have not exceeded the maximum number of files that can be in a listing
-                                if (j >= MAX_NUM_FILES - 1)
-                                    break;
-
                                 nk_selectable_label(ctx, contents.dirs[i]->files[j].name, NK_TEXT_LEFT, &contents.dirs[i]->files[j].selected);
                             }
 
@@ -400,10 +356,6 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 // See if there are any files to add to the tree
                 if (contents.number_files > 0) {
                     for (i = 0; i < contents.number_files; i++) {
-                        // Make sure we have not exceeded the maximum number of files that can be in a listing
-                        if (i >= MAX_NUM_FILES - 1)
-                            break;
-
                         nk_selectable_label(ctx, contents.files[i].name, NK_TEXT_LEFT, &contents.files[i].selected);
                     }
                 }
@@ -413,42 +365,22 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
                 // Check any level 1 directories to see if their files are selected
                 for (int i = 0; i < contents.number_directories; i++) {
-                    // Make sure we have not exceeded the maximum number of directories
-                    if (i >= MAX_NUM_DIRS - 1)
-                        break;
-
                     check_selected_tree_item(contents.dirs[i]);
 
                     // Check any level 2 directories to see if their files are selected
                     for (int j = 0; j < contents.dirs[i]->number_directories; j++) {
-                        // Make sure we have not exceeded the maximum number of directories
-                        if (j >= MAX_NUM_DIRS - 1)
-                            break;
-
                         check_selected_tree_item(contents.dirs[i]->dirs[j]);
 
                         // Check any level 3 directories to see if their files are selected
                         for (int k = 0; k < contents.dirs[i]->dirs[j]->number_directories; k++) {
-                            // Make sure we have not exceeded the maximum number of directories
-                            if (k >= MAX_NUM_DIRS - 1)
-                                break;
-
                             check_selected_tree_item(contents.dirs[i]->dirs[j]->dirs[k]);
 
                             // Check any level 4 directories to see if their files are selected
                             for (int l = 0; l < contents.dirs[i]->dirs[j]->dirs[k]->number_directories; l++) {
-                                // Make sure we have not exceeded the maximum number of directories
-                                if (l >= MAX_NUM_DIRS - 1)
-                                    break;
-
                                 check_selected_tree_item(contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]);
 
                                 // Check any level 5 directories to see if their files are selected
                                 for (int m = 0; m < contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->number_directories; m++) {
-                                    // Make sure we have not exceeded the maximum number of directories
-                                    if (m >= MAX_NUM_DIRS - 1)
-                                        break;
-
                                     check_selected_tree_item(contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]);
                                 }
                             }

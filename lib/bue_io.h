@@ -22,7 +22,7 @@
 #endif
 
 /* Define the maximum number of directories and files in a filesystem listing layer */
-#define MAX_NUM_DIRS 3
+#define MAX_NUM_DIRS 50
 #define MAX_NUM_FILES 250
 
 char* new_path;  // String of the path to the project directory
@@ -165,51 +165,49 @@ dir_contents list_dir_contents(char* dir_path, bool sort) {
 
             // Determine whether we are working with a directory or a file
             if (data->d_type == directory) {
-                // Keep track of the number of directories, starting the count at 1
-                if (contents.number_directories == -1) {
-                    contents.number_directories = 1;
+                // Refuse to add any directories over the maximum amount
+                if (contents.number_directories >= MAX_NUM_DIRS) {
+                    contents.error = exceeded_max_dirs;
                 }
                 else {
-                    contents.number_directories++;
+                    // Keep track of the number of directories, starting the count at 1
+                    if (contents.number_directories == -1) {
+                        contents.number_directories = 1;
+                    }
+                    else {
+                        contents.number_directories++;
+                    }
+
+                    // Keep track of this directory's information as a new array element
+                    contents.dirs[contents.number_directories - 1] = (dir_contents *)malloc(sizeof(dir_contents));
+                    contents.dirs[contents.number_directories - 1]->name = strdup(data->d_name);
+                    contents.dirs[contents.number_directories - 1]->selected = 0;
+                    contents.dirs[contents.number_directories - 1]->prev_selected = 0;
                 }
-
-
-                // Let the user know if we have too many directories in the current level of the directory structure
-                if (contents.number_directories > MAX_NUM_DIRS) {
-                    contents.error = exceeded_max_dirs;
-                    return contents;
-                }
-
-                // Keep track of this directory's information as a new array element
-                contents.dirs[contents.number_directories - 1] = (dir_contents *)malloc(sizeof(dir_contents));
-                contents.dirs[contents.number_directories - 1]->name = strdup(data->d_name);
-                contents.dirs[contents.number_directories - 1]->selected = 0;
-                contents.dirs[contents.number_directories - 1]->prev_selected = 0;
             }
             else {
-
-                // Keep track of the number of files, starting the count at 1
-                if (contents.number_files == -1) {
-                    contents.number_files = 1;
+                // Refuse to add any files over the maximum amount
+                if (contents.number_files >= MAX_NUM_FILES) {
+                    contents.error = exceeded_max_files;
                 }
                 else {
-                    contents.number_files++;
-                }
+                    // Keep track of the number of files, starting the count at 1
+                    if (contents.number_files == -1) {
+                        contents.number_files = 1;
+                    }
+                    else {
+                        contents.number_files++;
+                    }
 
-                // Let the user know if we have too many files in the current level of the directory structure
-                if (contents.number_files > MAX_NUM_FILES) {
-                    contents.error = exceeded_max_files;
-                    return contents;
+                    // Keep track of this file name and path
+                    char new_path[strlen(dir_path) + strlen(PATH_SEP) + strlen(data->d_name) + 1];
+                    new_path[0] = '\0';
+                    strcat(new_path, dir_path);
+                    strcat(new_path, PATH_SEP);
+                    strcat(new_path, data->d_name);
+                    struct file_entry ent = {.name=strdup(data->d_name), .selected=0, .prev_selected=0, .path=strdup(new_path)};
+                    contents.files[contents.number_files - 1] = ent;
                 }
-
-                // Keep track of this file name and path
-                char new_path[strlen(dir_path) + strlen(PATH_SEP) + strlen(data->d_name) + 1];
-                new_path[0] = '\0';
-                strcat(new_path, dir_path);
-                strcat(new_path, PATH_SEP);
-                strcat(new_path, data->d_name);
-                struct file_entry ent = {.name=strdup(data->d_name), .selected=0, .prev_selected=0, .path=strdup(new_path)};
-                contents.files[contents.number_files - 1] = ent;
             }
         }
     }
@@ -253,10 +251,6 @@ dir_contents list_project_dir(char* dir_path) {
     // Get the sorted listing of the root project directory
     contents = list_dir_contents(dir_path, true);
 
-    // If there is an error, go ahead and return the current contents
-    if (contents.error > 0)
-        return contents;
-
     // Step through all of the directories in the root project directory and get their listings
     for (int i = 0; i < contents.number_directories; i++) {
         // Assemble the subdirectory path
@@ -270,9 +264,8 @@ dir_contents list_project_dir(char* dir_path) {
         temp_level_1 = list_dir_contents(sub_path, true);
 
         // If there is an error, go ahead and return the current contents
-        if (temp_level_1.error > 0) {
+        if (temp_level_1.error > 0 && contents.error != 0) {
             contents.error = temp_level_1.error;
-            return contents;
         }
 
         // Add the subdirectory's contents to the main listing of contents
@@ -293,9 +286,8 @@ dir_contents list_project_dir(char* dir_path) {
                 temp_level_2 = list_dir_contents(sub_path_2, true);
 
                 // If there is an error, go ahead and return the current contents
-                if (temp_level_2.error > 0) {
+                if (temp_level_2.error > 0 && contents.error != 0) {
                     contents.error = temp_level_2.error;
-                    return contents;
                 }
 
                 // Add the second level subdirectory's contents to the main listing
@@ -316,9 +308,8 @@ dir_contents list_project_dir(char* dir_path) {
                         temp_level_3 = list_dir_contents(sub_path_3, true);
 
                         // If there is an error, go ahead and return the current contents
-                        if (temp_level_3.error > 0) {
+                        if (temp_level_3.error > 0 && contents.error != 0) {
                             contents.error = temp_level_3.error;
-                            return contents;
                         }
 
                         // Add the third level subdirectory's contents to the main listing
@@ -339,9 +330,8 @@ dir_contents list_project_dir(char* dir_path) {
                                 temp_level_4 = list_dir_contents(sub_path_4, true);
 
                                 // If there is an error, go ahead and return the current contents
-                                if (temp_level_4.error > 0) {
+                                if (temp_level_4.error > 0 && contents.error != 0) {
                                     contents.error = temp_level_4.error;
-                                    return contents;
                                 }
 
                                 // Add the fourth level subdirectory's contents to the main listing
@@ -361,19 +351,15 @@ dir_contents list_project_dir(char* dir_path) {
                                         // List the fifth level subdirectory
                                         temp_level_5 = list_dir_contents(sub_path_5, true);
 
-                                        // If there is an error, go ahead and return the current contents
-                                        if (temp_level_5.error > 0) {
+                                        // If there is an error, go ahead and set it in the current contents
+                                        if (temp_level_5.error > 0 && contents.error != 0) {
                                             contents.error = temp_level_5.error;
-                                            return contents;
                                         }
 
                                         // Add the fifth level subdirectory's contents to the main listing
                                         contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->number_directories = temp_level_5.number_directories;
                                         contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->number_files = temp_level_5.number_files;
                                         if (temp_level_5.number_directories > 0) {
-                                            // Set an error for directory depth here
-                                            contents.error = dir_structure_too_deep;
-
                                             // Add the directories of this sublisting to the main listing
                                             for (int n = 0; n < temp_level_5.number_directories; n++) {
                                                 contents.dirs[i]->dirs[j]->dirs[k]->dirs[l]->dirs[m]->dirs[n] = temp_level_5.dirs[n];
@@ -395,7 +381,7 @@ dir_contents list_project_dir(char* dir_path) {
                         }
                         if (temp_level_3.number_files > 0) {
                             for (int l = 0; l < temp_level_3.number_files; l++) {
-                                contents.dirs[i]->dirs[j]->dirs[k]->files[l] = temp_level_3.files[k];
+                                contents.dirs[i]->dirs[j]->dirs[k]->files[l] = temp_level_3.files[l];
                             }
                         }
                     }

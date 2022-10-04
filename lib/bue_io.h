@@ -25,7 +25,6 @@
 #define MAX_NUM_DIRS 50
 #define MAX_NUM_FILES 250
 
-char* new_path;  // String of the path to the project directory
 DIR* open_dir;  // DIRENT struct holding information on the open directory
 
 // Holds the types of files we are working with

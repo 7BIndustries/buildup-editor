@@ -21,15 +21,14 @@
 // Constants that hold mostly array lengths
 #define ERROR_MSG_MAX_LENGTH 1000
 
-int i;  // Loop counter variable
 char file_path[1000];  // Holds the selected file/folder path
-char buffer[1000];  // Holds the BuildUp markdown text entered by the user
 char html_preview[1000];  // Converted HTML text based on the markdowns
 struct directory_contents contents;  // Listed directory contents
 int ret;  // The return code for the markdown to HTML conversions
 struct nk_rect bounds;  // The bounds of the popup dialog
 bool error_popup_active = false;  // Tracks whether or not the error popup should be displayed
 char error_popup_message[ERROR_MSG_MAX_LENGTH];  // The message that will be displayed in the error popup
+struct nk_text_edit tedit_state;  // The struct that holds the state of the BuildUp text editor
 
 // md4c flags for converting markdown to HTML
 static unsigned parser_flags = 0;
@@ -57,29 +56,12 @@ struct XWindow {
 };
 
 /*
- * Buffer struct that the converted HTML text is stored in.
- * Needed by md4c.
+ * struct of user data that can be passed by the markdown parser.
+ * This is mostly just a placeholder right now.
  */
-struct membuffer {
-    char* data;
-    size_t asize;
-    size_t size;
+struct md_userdata {
+    char* name;
 };
-
-/*
- * Used to initialize the buffer that the converted HTML is stored in.
- * Needed by md4c.
- */
-static void membuf_init(struct membuffer* buf, MD_SIZE new_asize)
-{
-    buf->size = 0;
-    buf->asize = new_asize;
-    buf->data = malloc(buf->asize);
-    if(buf->data == NULL) {
-        fprintf(stderr, "membuf_init: malloc() failed.\n");
-        exit(1);
-    }
-}
 
 /******************************************************************************
  * process_output -- Call back function for the Markdown to HTML processor.   *
@@ -109,6 +91,9 @@ struct nk_context* ui_init(struct XWindow xw) {
     // GUI
     xw.font = nk_xfont_create(xw.dpy, "fixed");
     ctx = nk_xlib_init(xw.font, xw.dpy, xw.screen, xw.win, xw.width, xw.height);
+
+    // Initialize the text editor state
+    nk_textedit_init_default(&tedit_state);
 
     return ctx;
 }
@@ -210,7 +195,7 @@ void deselect_entire_tree() {
  *      Nothing                                                               *
  *****************************************************************************/
 void check_selected_tree_item(struct directory_contents* contents) {
-    for (i = 0; i < contents->number_files; i++) {
+    for (int i = 0; i < contents->number_files; i++) {
         // If the item was previously selected, deselect it
         if (contents->files[i].selected == nk_true && contents->files[i].prev_selected == nk_false) {
             printf("%s is selected.\n", contents->files[i].path);
@@ -240,8 +225,8 @@ void check_selected_tree_item(struct directory_contents* contents) {
  *      Nothing                                                               *
  *****************************************************************************/
 void ui_do(struct nk_context* ctx, int window_width, int window_height, int* running) {
-    struct membuffer buf_out = {0};
-    membuf_init(&buf_out, (MD_SIZE)(sizeof(buffer) + sizeof(buffer)/8 + 64));
+    // Placeholder for user data that can be passed around
+    struct md_userdata userdata = {.name="Temp"};
 
     if (nk_begin(ctx, "Main Window", nk_rect(0, 0, window_width, window_height),
         NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR))
@@ -271,7 +256,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 html_preview[0] = '\0';
 
                 // Convert the markdown to HTML
-                ret = md_html(buffer, (MD_SIZE)strlen(buffer), process_output, (void*) &buf_out, parser_flags, renderer_flags);
+                ret = md_html(tedit_state.string.buffer.memory.ptr, (MD_SIZE)tedit_state.string.len, process_output, (void*) &userdata, parser_flags, renderer_flags);
                 if (ret == -1) {
                     printf("The markdown failed to parse.\n");
                 }
@@ -299,7 +284,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             if (nk_tree_push(ctx, NK_TREE_NODE, "Project", NK_MAXIMIZED)) {
                 // See if there are any directories to add to the tree
                 if (contents.number_directories > 0) {
-                    for (i = 0; i < contents.number_directories; i++) {
+                    for (int i = 0; i < contents.number_directories; i++) {
                         if (nk_tree_element_push_id(ctx, NK_TREE_NODE, contents.dirs[i]->name, NK_MINIMIZED, &contents.dirs[i]->selected, i)) {
                             // Add this directory's dir contents
                             for (int j = 0; j < contents.dirs[i]->number_directories; j++) {
@@ -355,7 +340,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 }
                 // See if there are any files to add to the tree
                 if (contents.number_files > 0) {
-                    for (i = 0; i < contents.number_files; i++) {
+                    for (int i = 0; i < contents.number_files; i++) {
                         nk_selectable_label(ctx, contents.files[i].name, NK_TEXT_LEFT, &contents.files[i].selected);
                     }
                 }
@@ -396,7 +381,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
         // BuildUp markdown editor text field
         nk_layout_row_push(ctx, 0.4f);
-        nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX|NK_EDIT_AUTO_SELECT|NK_EDIT_MULTILINE, buffer, sizeof(buffer), nk_filter_ascii);
+        nk_edit_buffer(ctx, NK_EDIT_FIELD|NK_EDIT_AUTO_SELECT|NK_EDIT_MULTILINE, &tedit_state, nk_filter_default);
 
         // Output HTML
         nk_layout_row_push(ctx, 0.4f);

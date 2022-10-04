@@ -264,7 +264,7 @@ dir_contents list_project_dir(char* dir_path) {
         temp_level_1 = list_dir_contents(sub_path, true);
 
         // If there is an error, go ahead and return the current contents
-        if (temp_level_1.error > 0 && contents.error != 0) {
+        if (temp_level_1.error > 0 && contents.error == 0) {
             contents.error = temp_level_1.error;
         }
 
@@ -286,7 +286,7 @@ dir_contents list_project_dir(char* dir_path) {
                 temp_level_2 = list_dir_contents(sub_path_2, true);
 
                 // If there is an error, go ahead and return the current contents
-                if (temp_level_2.error > 0 && contents.error != 0) {
+                if (temp_level_2.error > 0 && contents.error == 0) {
                     contents.error = temp_level_2.error;
                 }
 
@@ -308,7 +308,7 @@ dir_contents list_project_dir(char* dir_path) {
                         temp_level_3 = list_dir_contents(sub_path_3, true);
 
                         // If there is an error, go ahead and return the current contents
-                        if (temp_level_3.error > 0 && contents.error != 0) {
+                        if (temp_level_3.error > 0 && contents.error == 0) {
                             contents.error = temp_level_3.error;
                         }
 
@@ -330,7 +330,7 @@ dir_contents list_project_dir(char* dir_path) {
                                 temp_level_4 = list_dir_contents(sub_path_4, true);
 
                                 // If there is an error, go ahead and return the current contents
-                                if (temp_level_4.error > 0 && contents.error != 0) {
+                                if (temp_level_4.error > 0 && contents.error == 0) {
                                     contents.error = temp_level_4.error;
                                 }
 
@@ -352,7 +352,7 @@ dir_contents list_project_dir(char* dir_path) {
                                         temp_level_5 = list_dir_contents(sub_path_5, true);
 
                                         // If there is an error, go ahead and set it in the current contents
-                                        if (temp_level_5.error > 0 && contents.error != 0) {
+                                        if (temp_level_5.error > 0 && contents.error == 0) {
                                             contents.error = temp_level_5.error;
                                         }
 

@@ -385,7 +385,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
         // Output HTML
         nk_layout_row_push(ctx, 0.4f);
-        nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE, html_preview, strlen(html_preview) + 1, nk_filter_ascii);
+        nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE, html_preview, strlen(html_preview) + 1, nk_filter_default);
 
         // Show and handle the Open Project dialog
         if (show_open_project) {

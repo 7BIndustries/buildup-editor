@@ -426,7 +426,8 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
         // BuildUp markdown editor text field
         nk_layout_row_push(ctx, 0.4f);
-        nk_edit_buffer(ctx, NK_EDIT_FIELD|NK_EDIT_AUTO_SELECT|NK_EDIT_MULTILINE, &tedit_state, nk_filter_default);
+        tedit_state.single_line = 0;
+        nk_edit_buffer(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE, &tedit_state, nk_filter_default);
 
         // Output HTML
         nk_layout_row_push(ctx, 0.4f);

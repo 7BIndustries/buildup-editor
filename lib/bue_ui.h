@@ -20,8 +20,9 @@
 
 // Constants that hold mostly array lengths
 #define ERROR_MSG_MAX_LENGTH 1000
+#define FILE_PATH_MAX_LENGTH 1000
 
-char file_path[1000];  // Holds the selected file/folder path
+char file_path[FILE_PATH_MAX_LENGTH];  // Holds the selected file/folder path
 char* html_preview = NULL;  // Converted HTML text based on the markdowns
 struct directory_contents contents;  // Listed directory contents
 int ret;  // The return code for the markdown to HTML conversions

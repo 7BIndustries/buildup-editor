@@ -22,7 +22,7 @@
 #define ERROR_MSG_MAX_LENGTH 1000
 
 char file_path[1000];  // Holds the selected file/folder path
-char html_preview[1000];  // Converted HTML text based on the markdowns
+char* html_preview = NULL;  // Converted HTML text based on the markdowns
 struct directory_contents contents;  // Listed directory contents
 int ret;  // The return code for the markdown to HTML conversions
 struct nk_rect bounds;  // The bounds of the popup dialog
@@ -79,7 +79,10 @@ static void process_output(const MD_CHAR* text, MD_SIZE size, void* userdata)
     // To get rid of the unused variable warning for userdata
     if (userdata == NULL) printf("No user data passed for markdown processor.\n");
 
-    strncat(html_preview, text, size);
+    // Make sure that the HTML preview string can hold all of the contents
+    html_preview = (char*)realloc(html_preview, sizeof(html_preview) + size + 1);
+
+    strcat(html_preview, text);
 }
 
 /*
@@ -94,6 +97,10 @@ struct nk_context* ui_init(struct XWindow xw) {
 
     // Initialize the text editor state
     nk_textedit_init_default(&tedit_state);
+
+    // Start off the HTML preview string at its initial size
+    html_preview = malloc(sizeof(char));
+    html_preview[0] = '\0';
 
     return ctx;
 }
@@ -226,7 +233,7 @@ void check_selected_tree_item(struct directory_contents* contents) {
  *****************************************************************************/
 void ui_do(struct nk_context* ctx, int window_width, int window_height, int* running) {
     // Placeholder for user data that can be passed around
-    struct md_userdata userdata = {.name="Temp"};
+    struct md_userdata userdata = {.name="Name"};
 
     if (nk_begin(ctx, "Main Window", nk_rect(0, 0, window_width, window_height),
         NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR))

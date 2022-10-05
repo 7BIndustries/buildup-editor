@@ -13,12 +13,16 @@
 /* Filesystem path separators vary by OS */
 #ifdef __linux__
     const char* PATH_SEP = "/";  // The filesystem path separator for Linux
+    const char* NEWLINE = "\n";  // The newline character for Linux
 #elif defined __unix__
     const char* PATH_SEP = "/";  // The filesystem path separator for this Unix
+    const char* NEWLINE = "\n";  // The newline character for Unix
 #elif defined _WIN32
-    const char* PATH_SEP = "\\";  // The filesystem path separator for this Windows
+    const char* PATH_SEP = "\\";  // The filesystem path separator for Windows
+    const char* NEWLINE = "\r\n";  // The newline character for Windows
 #elif defined __APPLE__ && __MACH__
-    const char* PATH_SEP = "/";  // The filesystem path separator for this OS
+    const char* PATH_SEP = "/";  // The filesystem path separator for MacOS
+    const char* NEWLINE = "\n";  // The newliine character for MacOS
 #endif
 
 /* Define the maximum number of directories and files in a filesystem listing layer */

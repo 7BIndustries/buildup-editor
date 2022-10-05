@@ -208,6 +208,43 @@ void check_selected_tree_item(struct directory_contents* contents) {
         if (contents->files[i].selected == nk_true && contents->files[i].prev_selected == nk_false) {
             printf("%s is selected.\n", contents->files[i].path);
 
+            // Load the contents of the selected file into the markdown editor
+            if (string_ends_with(contents->files[i].name, ".md") || string_ends_with(contents->files[i].name, ".yaml")) {
+                // Open the documentation file and make sure that the file opened properly
+                FILE* doc_file;
+                doc_file = fopen(contents->files[i].path, "r");
+                if (doc_file == NULL) {
+                    set_error_popup("There was an error opening the file\nthat you selected.");
+                }
+                else {
+                    // Read all of the lines from the file
+                    unsigned int line_count = 0;
+                    while(1) {
+                        char* line;
+                        char line_temp[1000];
+                        line = fgets(line_temp, sizeof(line_temp), doc_file);
+
+                        // Leave this line reading loop if we have reached the end of the file or an error
+                        if (line == NULL) {
+                            break;
+                        }
+                        else {
+                            nk_textedit_text(&tedit_state, line, strlen(line));
+
+                            // Add the newline character to the line that was read
+                            /*if (line_count == 0)
+                                nk_textedit_text(&tedit_state, "\n", 1);*/
+                            // nk_textedit_text(&tedit_state, "\n", 1);
+                        }
+
+                        line_count++;
+                    }
+                }
+
+                // Make sure to close the file
+                fclose(doc_file);
+            }
+
             // Deselect all other tree items
             deselect_entire_tree();
 

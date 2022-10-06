@@ -234,6 +234,10 @@ void check_selected_tree_item(struct directory_contents* contents) {
                     set_error_popup("There was an error opening the file\nthat you selected.");
                 }
                 else {
+                    // Clear the previous contents of the markdown editor
+                    nk_textedit_select_all(&tedit_state);
+                    nk_textedit_delete_selection(&tedit_state);
+
                     // Read all of the lines from the file
                     unsigned int line_count = 0;
                     while(1) {

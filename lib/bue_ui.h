@@ -22,6 +22,12 @@
 #define ERROR_MSG_MAX_LENGTH 1000
 #define FILE_PATH_MAX_LENGTH 1000
 
+typedef struct markdown_state markdown_state;
+struct markdown_state {
+    int prev_markdown_len;
+    bool is_dirty;
+};
+
 char file_path[FILE_PATH_MAX_LENGTH];  // Holds the selected file/folder path
 char* html_preview = NULL;  // Converted HTML text based on the markdowns
 struct directory_contents contents;  // Listed directory contents
@@ -30,6 +36,7 @@ struct nk_rect bounds;  // The bounds of the popup dialog
 bool error_popup_active = false;  // Tracks whether or not the error popup should be displayed
 char error_popup_message[ERROR_MSG_MAX_LENGTH];  // The message that will be displayed in the error popup
 struct nk_text_edit tedit_state;  // The struct that holds the state of the BuildUp text editor
+markdown_state bu_state;  // Tracks the state of the BuildUp markdown editor
 
 // md4c flags for converting markdown to HTML
 static unsigned parser_flags = 0;
@@ -98,6 +105,10 @@ struct nk_context* ui_init(struct XWindow xw) {
 
     // Initialize the text editor state
     nk_textedit_init_default(&tedit_state);
+
+    // Start the markdown editor's state off
+    bu_state.is_dirty = false;
+    bu_state.prev_markdown_len = 0;
 
     // Start off the HTML preview string at its initial size
     html_preview = malloc(sizeof(char));
@@ -204,6 +215,12 @@ void deselect_entire_tree() {
  *****************************************************************************/
 void check_selected_tree_item(struct directory_contents* contents) {
     for (int i = 0; i < contents->number_files; i++) {
+        // Check to see if an asterisk should be added to show that a file is dirty
+        if (contents->files[i].selected == nk_true && bu_state.is_dirty && contents->files[i].name[strlen(contents->files[i].name) - 1] != '*') {
+            // Append the asterisk to the file name
+            append_char_to_string(contents->files[i].name, '*');
+        }
+
         // If the item was previously selected, deselect it
         if (contents->files[i].selected == nk_true && contents->files[i].prev_selected == nk_false) {
             printf("%s is selected.\n", contents->files[i].path);
@@ -229,12 +246,11 @@ void check_selected_tree_item(struct directory_contents* contents) {
                             break;
                         }
                         else {
+                            // Add the line read from the file to the markdown editor
                             nk_textedit_text(&tedit_state, line, strlen(line));
 
-                            // Add the newline character to the line that was read
-                            /*if (line_count == 0)
-                                nk_textedit_text(&tedit_state, "\n", 1);*/
-                            // nk_textedit_text(&tedit_state, "\n", 1);
+                            // Save the current text length as the previous so the file will not be marked as dirty
+                            bu_state.prev_markdown_len = tedit_state.string.len;
                         }
 
                         line_count++;
@@ -432,6 +448,15 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         // Output HTML
         nk_layout_row_push(ctx, 0.4f);
         nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE, html_preview, strlen(html_preview) + 1, nk_filter_default);
+
+        // Check to see if the text has changed
+        if (tedit_state.string.len != bu_state.prev_markdown_len) {
+            printf("Text has changed.\n");
+
+            // Save the previous state
+            bu_state.is_dirty = true;
+            bu_state.prev_markdown_len = tedit_state.string.len;
+        }
 
         // Show and handle the Open Project dialog
         if (show_open_project) {

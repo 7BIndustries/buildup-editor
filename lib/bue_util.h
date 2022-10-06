@@ -66,3 +66,24 @@ static bool string_ends_with(const char* str, const char* suffix) {
 
     return ends_with;
 }
+
+/******************************************************************************
+ * append_char_to_string -- Adds a specified single character onto the end of *
+ *                          a string.                                         *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      prefix -- The string (char array) that the character will be added to.*
+ *      suffix -- The single character to add to the prefix.                  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void append_char_to_string(char* prefix, char suffix) {
+    // Save the original length of the string
+    int len = strlen(prefix);
+
+    // Resize the string, add the suffix, and terminate
+    prefix = realloc(prefix, len + 1);
+    prefix[len] = suffix;
+    prefix[len + 1] = '\0';
+}

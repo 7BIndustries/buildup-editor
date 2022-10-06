@@ -294,7 +294,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
     {
         // Application menu
         nk_menubar_begin(ctx);
-        nk_layout_row_begin(ctx, NK_STATIC, 25, 2);
+        nk_layout_row_begin(ctx, NK_STATIC, 25, 3);
         nk_layout_row_push(ctx, 45);
         if (nk_menu_begin_label(ctx, "FILE", NK_TEXT_LEFT, nk_vec2(120, 200))) {
             // Single column layout
@@ -332,6 +332,58 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             if (nk_menu_item_label(ctx, "CLOSE", NK_TEXT_LEFT)) {
                 *running = 0;
             }
+
+            nk_menu_end(ctx);
+        }
+
+        // Edit menu
+        if (nk_menu_begin_label(ctx, "EDIT", NK_TEXT_LEFT, nk_vec2(120, 200))) {
+            // Single column layout
+            nk_layout_row_dynamic(ctx, 30, 1);
+
+            // The undo feature for the markdown editor
+            if (nk_menu_item_label(ctx, "UNDO", NK_TEXT_LEFT)) {
+                printf("Undoing last edit...\n");
+            }
+
+            // The redo feature for the markdown editor
+            if (nk_menu_item_label(ctx, "REDO", NK_TEXT_LEFT)) {
+                printf("Redoing last edit...\n");
+            }
+
+            // The copy feature for the markdown editor
+            if (nk_menu_item_label(ctx, "CUT", NK_TEXT_LEFT)) {
+                printf("Cutting to the clipboard...\n");
+            }
+
+            // The copy feature for the markdown editor
+            if (nk_menu_item_label(ctx, "COPY", NK_TEXT_LEFT)) {
+                printf("Copying to the clipboard...\n");
+            }
+
+            // The paste feature for the markdown editor
+            if (nk_menu_item_label(ctx, "PASTE", NK_TEXT_LEFT)) {
+                printf("Pasting from the clipboard...\n");
+            }
+
+            // Opens the settings dialog for the user
+            if (nk_menu_item_label(ctx, "SETTINGS", NK_TEXT_LEFT)) {
+                printf("Opening the settings dialog...\n");
+            }
+
+            nk_menu_end(ctx);
+        }
+
+        // Insert menu
+        if (nk_menu_begin_label(ctx, "INSERT", NK_TEXT_LEFT, nk_vec2(120, 200))) {
+            // Single column layout
+            nk_layout_row_dynamic(ctx, 30, 1);
+
+            // For inserting the Bill of Materials
+            if (nk_menu_item_label(ctx, "BOM", NK_TEXT_LEFT)) {
+                printf("Inserting a bill of materials entry...\n");
+            }
+
             nk_menu_end(ctx);
         }
 

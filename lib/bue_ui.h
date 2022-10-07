@@ -26,13 +26,16 @@ typedef struct markdown_state markdown_state;
 struct markdown_state {
     int prev_markdown_len;
     bool is_dirty;
+    char* dirty_path;
 };
 
+char* selected_path = NULL;  // Tracks the currently selected path so see when a change occurs and to know where to save
 char file_path[FILE_PATH_MAX_LENGTH];  // Holds the selected file/folder path
 char* html_preview = NULL;  // Converted HTML text based on the markdowns
 struct directory_contents contents;  // Listed directory contents
 int ret;  // The return code for the markdown to HTML conversions
 struct nk_rect bounds;  // The bounds of the popup dialog
+bool save_confirm_dialog_active = false;  // Tracks whether or not the save confirmation dialog should be opened
 bool error_popup_active = false;  // Tracks whether or not the error popup should be displayed
 char error_popup_message[ERROR_MSG_MAX_LENGTH];  // The message that will be displayed in the error popup
 struct nk_text_edit tedit_state;  // The struct that holds the state of the BuildUp text editor
@@ -109,6 +112,7 @@ struct nk_context* ui_init(struct XWindow xw) {
     // Start the markdown editor's state off
     bu_state.is_dirty = false;
     bu_state.prev_markdown_len = 0;
+    bu_state.dirty_path = NULL;
 
     // Start off the HTML preview string at its initial size
     html_preview = malloc(sizeof(char));
@@ -215,15 +219,32 @@ void deselect_entire_tree() {
  *****************************************************************************/
 void check_selected_tree_item(struct directory_contents* contents) {
     for (int i = 0; i < contents->number_files; i++) {
+        // Protect against switching away from a file that needs to be saved first
+        if (bu_state.is_dirty && bu_state.dirty_path != NULL && contents->files[i].selected == nk_true && strcmp(contents->files[i].path, bu_state.dirty_path) != 0) {
+            if (!save_confirm_dialog_active) {
+                // Deselect this file since it is not the one that needs to be saved
+                contents->files[i].selected = nk_false;
+
+                // Open the save confirm dialog that will stop the user before they lose changes accidentally
+                printf("You need to save the current file before switching to another.\n");
+                save_confirm_dialog_active = true;
+            }
+            return;
+        }
+
         // Check to see if an asterisk should be added to show that a file is dirty
         if (contents->files[i].selected == nk_true && bu_state.is_dirty && contents->files[i].name[strlen(contents->files[i].name) - 1] != '*') {
             // Append the asterisk to the file name
             append_char_to_string(contents->files[i].name, '*');
+            bu_state.dirty_path = selected_path;
         }
 
         // If the item was previously selected, deselect it
         if (contents->files[i].selected == nk_true && contents->files[i].prev_selected == nk_false) {
             printf("%s is selected.\n", contents->files[i].path);
+
+            // Save this as the currently selected path
+            selected_path = contents->files[i].path;
 
             // Load the contents of the selected file into the markdown editor
             if (string_ends_with(contents->files[i].name, ".md") || string_ends_with(contents->files[i].name, ".yaml")) {

@@ -88,10 +88,11 @@ struct md_userdata {
 static void process_output(const MD_CHAR* text, MD_SIZE size, void* userdata)
 {
     // To get rid of the unused variable warning for userdata
-    if (userdata == NULL) printf("No user data passed for markdown processor.\n");
+    if (userdata == NULL)
+        printf("No user data passed for markdown processor.\n");
 
     // Make sure that the HTML preview string can hold all of the contents
-    html_preview = (char*)realloc(html_preview, sizeof(html_preview) + size + 1);
+    html_preview = (char*)realloc(html_preview, sizeof(html_preview) + ((size + 2) * sizeof(char)));
 
     strcat(html_preview, text);
 }
@@ -146,6 +147,40 @@ void set_error_popup(char* message) {
 
     // Make sure that the dialog will be displayed
     error_popup_active = true;
+}
+
+/******************************************************************************
+ * save_selected_file -- Saves the text in the markdown editor to the open    *
+ *                       file.                                                *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      None                                                                  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void save_selected_file() {
+    // If there is a selected file path
+    if (bu_state.dirty_path != NULL) {
+        // Open the dirty file path for writing and write the editor buffer
+        FILE* doc_file;
+        doc_file = fopen(bu_state.dirty_path, "w");
+        if (doc_file == NULL) {
+            set_error_popup("There was an error saving the open file.");
+        }
+        else {
+            // Save the editor text to the file
+            int res = fputs(tedit_state.string.buffer.memory.ptr, doc_file);
+            if (res == EOF) {
+                set_error_popup("There was an error saving the file.");
+            }
+            else {
+                bu_state.is_dirty = false;
+                bu_state.dirty_path = NULL;
+            }
+        }
+        fclose(doc_file);
+    }
 }
 
 /******************************************************************************
@@ -237,6 +272,10 @@ void check_selected_tree_item(struct directory_contents* contents) {
             // Append the asterisk to the file name
             append_char_to_string(contents->files[i].name, '*');
             bu_state.dirty_path = selected_path;
+        }
+        else if (contents->files[i].selected == nk_true && !bu_state.is_dirty && contents->files[i].name[strlen(contents->files[i].name) - 1] == '*') {
+            // If the file is not dirty, make sure it does not keep its asterisk
+            contents->files[i].name[strlen(contents->files[i].name) - 1] = '\0';
         }
 
         // If the item was previously selected, deselect it
@@ -338,6 +377,9 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
             // Button to save the current file and update the preview
             if (nk_menu_item_label(ctx, "SAVE", NK_TEXT_LEFT)) {
+                // Save the markdown file that is open
+                save_selected_file();
+
                 // Reset the HTML preview text for the new conversion text
                 html_preview[0] = '\0';
 
@@ -552,7 +594,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
                 // The path entry box
                 nk_layout_row_dynamic(ctx, 25, 1);
-                nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX, file_path, sizeof(file_path), nk_filter_ascii);
+                nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX, file_path, sizeof(file_path), nk_filter_default);
 
                 // OK button allows user to submit the path information
                 nk_layout_row_dynamic(ctx, 25, 3);
@@ -623,7 +665,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         {
             // Displays the error message
             nk_layout_row_dynamic(ctx, 70, 1);
-            nk_edit_string_zero_terminated(ctx, NK_EDIT_READ_ONLY|NK_EDIT_MULTILINE, error_popup_message, sizeof(error_popup_message), nk_filter_ascii);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_READ_ONLY|NK_EDIT_MULTILINE, error_popup_message, sizeof(error_popup_message), nk_filter_default);
 
             // Displays the OK button to the user
             nk_layout_row_dynamic(ctx, 25, 1);
@@ -637,6 +679,40 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             error_popup_active = false;
         }
     }
+
+    // Handle the save confirmation popup
+    if (save_confirm_dialog_active) {
+        // THe position and size of the popup
+        struct nk_rect s = {(window_width / 2) - (275 / 2), (window_height / 2) - (150 / 2), 275, 150};
+
+        // Construct the popup
+        if (nk_popup_begin(ctx, NK_POPUP_STATIC, "Confirm", NK_WINDOW_TITLE, s)) {
+            // Displays the confirmation message
+            nk_layout_row_dynamic(ctx, 70, 1);
+            const char* message = "Save changes before opening another file?\0";
+            nk_label(ctx, message, NK_TEXT_LEFT);
+
+            // The Yes button to save the file before opening another one, and the No button to proceed without saving
+            nk_layout_row_dynamic(ctx, 25, 2);
+            if (nk_button_label(ctx, "YES")) {
+                // Save the markdown file that is open
+                save_selected_file();
+
+                // Close the dialog
+                save_confirm_dialog_active = false;
+                nk_popup_close(ctx);
+            }
+            if (nk_button_label(ctx, "NO")) {
+                save_confirm_dialog_active = false;
+                nk_popup_close(ctx);
+            }
+            nk_popup_end(ctx);
+        }
+        else {
+            save_confirm_dialog_active = false;
+        }
+    }
+
 
     nk_end(ctx);
 }

@@ -91,10 +91,16 @@ static void process_output(const MD_CHAR* text, MD_SIZE size, void* userdata)
     if (userdata == NULL)
         printf("No user data passed for markdown processor.\n");
 
-    // Make sure that the HTML preview string can hold all of the contents
-    html_preview = (char*)realloc(html_preview, sizeof(html_preview) + ((size + 2) * sizeof(char)));
+    // Make sure the correct amount of memory is allocated for the HTML preview
+    if (html_preview == NULL) {
+        html_preview = (char*)realloc(html_preview, size + 1);
+        html_preview[0] = '\0';
+    }
+    else {
+        html_preview = (char*)realloc(html_preview, strlen(html_preview) * sizeof(char) + size + 1);
+    }
 
-    strcat(html_preview, text);
+    strncat(html_preview, text, size);
 }
 
 /*
@@ -114,10 +120,6 @@ struct nk_context* ui_init(struct XWindow xw) {
     bu_state.is_dirty = false;
     bu_state.prev_markdown_len = 0;
     bu_state.dirty_path = NULL;
-
-    // Start off the HTML preview string at its initial size
-    html_preview = malloc(sizeof(char));
-    html_preview[0] = '\0';
 
     return ctx;
 }
@@ -381,7 +383,10 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 save_selected_file();
 
                 // Reset the HTML preview text for the new conversion text
-                html_preview[0] = '\0';
+                if (html_preview != NULL) {
+                    free(html_preview);
+                }
+                html_preview = NULL;
 
                 // Convert the markdown to HTML
                 ret = md_html(tedit_state.string.buffer.memory.ptr, (MD_SIZE)tedit_state.string.len, process_output, (void*) &userdata, parser_flags, renderer_flags);
@@ -566,12 +571,11 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
         // Output HTML
         nk_layout_row_push(ctx, 0.4f);
-        nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE, html_preview, strlen(html_preview) + 1, nk_filter_default);
+        if (html_preview != NULL)
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE, html_preview, strlen(html_preview) + 1, nk_filter_default);
 
         // Check to see if the text has changed
         if (tedit_state.string.len != bu_state.prev_markdown_len) {
-            printf("Text has changed.\n");
-
             // Save the previous state
             bu_state.is_dirty = true;
             bu_state.prev_markdown_len = tedit_state.string.len;

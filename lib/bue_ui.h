@@ -9,6 +9,7 @@
  * ***************************************************************************/
 
 #include "bue_io.h"
+#include "bue_preprocess.h"
 
 // #define INCLUDE_STYLE
 // #ifdef INCLUDE_STYLE
@@ -35,6 +36,7 @@ char* html_preview = NULL;  // Converted HTML text based on the markdowns
 struct directory_contents contents;  // Listed directory contents
 int ret;  // The return code for the markdown to HTML conversions
 struct nk_rect bounds;  // The bounds of the popup dialog
+bool step_link_page_dialog_active = false;  //Tracks whether or not the step link page dialog should be opened
 bool save_confirm_dialog_active = false;  // Tracks whether or not the save confirmation dialog should be opened
 bool about_dialog_active = false;  // Tracks whether or not the About dialog should be opened
 bool error_popup_active = false;  // Tracks whether or not the error popup should be displayed
@@ -48,6 +50,12 @@ static unsigned renderer_flags = MD_HTML_FLAG_DEBUG;
 
 // Popup dialog control flags
 static int show_open_project = nk_false;
+
+/*
+ * BuildUp tag dialog variables.
+ */
+char step_link_link_file[1000];  // The page file to link to
+char step_link_link_text[1000];  // The link text field
 
 // X11 window representation
 // Linux only
@@ -121,6 +129,12 @@ struct nk_context* ui_init(struct XWindow xw) {
     bu_state.is_dirty = false;
     bu_state.prev_markdown_len = 0;
     bu_state.dirty_path = NULL;
+
+    // Initialize all the BuildUp tag dialog variables
+    step_link_link_file[0] = '\0';
+    strcat(step_link_link_file, "file_to_link_to.md");
+    step_link_link_text[0] = '.';
+    step_link_link_text[1] = '\0';
 
     return ctx;
 }
@@ -389,8 +403,11 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 }
                 html_preview = NULL;
 
+                // Preprocess the string to handle all the BuildUp-specific tags
+                char* processed_str = preprocess(tedit_state.string.buffer.memory.ptr);
+
                 // Convert the markdown to HTML
-                ret = md_html(tedit_state.string.buffer.memory.ptr, (MD_SIZE)tedit_state.string.len, process_output, (void*) &userdata, parser_flags, renderer_flags);
+                ret = md_html(processed_str, (MD_SIZE)strlen(processed_str), process_output, (void*) &userdata, parser_flags, renderer_flags);
                 if (ret == -1) {
                     printf("The markdown failed to parse.\n");
                 }
@@ -455,6 +472,11 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             // For inserting the Bill of Materials
             if (nk_menu_item_label(ctx, "BOM", NK_TEXT_LEFT)) {
                 printf("Inserting a bill of materials entry...\n");
+            }
+
+            // For inserting a step link to another page
+            if (nk_menu_item_label(ctx, "STEP LINK", NK_TEXT_LEFT)) {
+                step_link_page_dialog_active = true;
             }
 
             nk_menu_end(ctx);
@@ -673,7 +695,9 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         }
     }
 
-    // Handle the error popup
+    /*
+     * Handle the error popup dialog.
+     */
     if (error_popup_active) {
         // The position and size of the popup
         struct nk_rect s = {(window_width / 2) - (290 / 2), (window_height / 2) - (150 / 2), 290, 150};
@@ -698,7 +722,9 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         }
     }
 
-    // Handle the save confirmation popup
+    /*
+     * Handle the save confirmation popup dialog.
+     */
     if (save_confirm_dialog_active) {
         // THe position and size of the popup
         struct nk_rect s = {(window_width / 2) - (275 / 2), (window_height / 2) - (150 / 2), 275, 150};
@@ -731,7 +757,9 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         }
     }
 
-    // Handle the about popup
+    /*
+     * Handle the About popup dialog.
+     */
     if (about_dialog_active) {
         // The position and size of the popup
         struct nk_rect s = {(window_width / 2) - (300 / 2), (window_height / 2) - (200 / 2), 300, 200};
@@ -755,6 +783,68 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         }
         else {
             about_dialog_active = false;
+        }
+    }
+
+    /*
+     * Handle the step link page popup dialog.
+     */
+    if (step_link_page_dialog_active) {
+        // The position and size of the popup
+        struct nk_rect s = {(window_width / 2) - (300 / 2), (window_height / 2) - (260 / 2), 300, 260};
+
+        // Construct the popup
+        if (nk_popup_begin(ctx, NK_POPUP_STATIC, "Insert Step Link", NK_WINDOW_TITLE, s)) {
+            // Displayys the description
+            nk_layout_row_dynamic(ctx, 60, 1);
+            char message[1000];
+            message[0] = '\0';
+            strcat(message, "Links to another file so that it will be\nincluded as a step. Setting 'Link Text' to '.' will use\nthe title of the page being linked to.");
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_READ_ONLY|NK_EDIT_MULTILINE, message, sizeof(message), nk_filter_default);
+
+            // The link text field to be shown in the HTML
+            nk_layout_row_dynamic(ctx, 25, 1);
+            nk_label(ctx, "Link Text", NK_TEXT_LEFT);
+            nk_layout_row_dynamic(ctx, 25, 1);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX|NK_TEXT_EDIT_SINGLE_LINE, step_link_link_text, sizeof(step_link_link_text), nk_filter_default);
+
+            // The field for the linked-to file
+            nk_layout_row_dynamic(ctx, 25, 1);
+            nk_label(ctx, "Page To Link To", NK_TEXT_LEFT);
+            nk_layout_row_dynamic(ctx, 25, 1);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX|NK_TEXT_EDIT_SINGLE_LINE, step_link_link_file, sizeof(step_link_link_file), nk_filter_default);
+
+            // Displays the OK button to the user
+            nk_layout_row_dynamic(ctx, 25, 2);
+            if (nk_button_label(ctx, "Insert")) {
+                printf("%s\n", step_link_link_text);
+                printf("%s\n", step_link_link_file);
+
+                // Assemble the BuildUp tag
+                char step_link_tag[2000];
+                step_link_tag[0] = '\0';
+                strcat(step_link_tag, "[");
+                strcat(step_link_tag, step_link_link_text);
+                strcat(step_link_tag, "](");
+                strcat(step_link_tag, step_link_link_file);
+                strcat(step_link_tag, "){step}");
+
+                // Insert the assembled tag at the current cursor location in the editor
+                nk_textedit_text(&tedit_state, step_link_tag, strlen(step_link_tag));
+
+                // Close the dialog
+                step_link_page_dialog_active = false;
+                nk_popup_close(ctx);
+            }
+            if (nk_button_label(ctx, "Cancel")) {
+                step_link_page_dialog_active = false;
+                nk_popup_close(ctx);
+            }
+
+            nk_popup_end(ctx);
+        }
+        else {
+            step_link_page_dialog_active = false;
         }
     }
 

@@ -36,6 +36,7 @@ struct directory_contents contents;  // Listed directory contents
 int ret;  // The return code for the markdown to HTML conversions
 struct nk_rect bounds;  // The bounds of the popup dialog
 bool save_confirm_dialog_active = false;  // Tracks whether or not the save confirmation dialog should be opened
+bool about_dialog_active = false;  // Tracks whether or not the About dialog should be opened
 bool error_popup_active = false;  // Tracks whether or not the error popup should be displayed
 char error_popup_message[ERROR_MSG_MAX_LENGTH];  // The message that will be displayed in the error popup
 struct nk_text_edit tedit_state;  // The struct that holds the state of the BuildUp text editor
@@ -360,7 +361,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
     {
         // Application menu
         nk_menubar_begin(ctx);
-        nk_layout_row_begin(ctx, NK_STATIC, 25, 3);
+        nk_layout_row_begin(ctx, NK_STATIC, 25, 4);
         nk_layout_row_push(ctx, 45);
         if (nk_menu_begin_label(ctx, "FILE", NK_TEXT_LEFT, nk_vec2(120, 200))) {
             // Single column layout
@@ -454,6 +455,19 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             // For inserting the Bill of Materials
             if (nk_menu_item_label(ctx, "BOM", NK_TEXT_LEFT)) {
                 printf("Inserting a bill of materials entry...\n");
+            }
+
+            nk_menu_end(ctx);
+        }
+
+        // Help menu
+        if (nk_menu_begin_label(ctx, "HELP", NK_TEXT_LEFT, nk_vec2(120, 200))) {
+            // Single column layout
+            nk_layout_row_dynamic(ctx, 30, 1);
+
+            // Opens the About dialog with information about the app and supporters
+            if (nk_menu_item_label(ctx, "ABOUT", NK_TEXT_LEFT)) {
+                about_dialog_active = true;
             }
 
             nk_menu_end(ctx);
@@ -717,6 +731,32 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         }
     }
 
+    // Handle the about popup
+    if (about_dialog_active) {
+        // The position and size of the popup
+        struct nk_rect s = {(window_width / 2) - (300 / 2), (window_height / 2) - (200 / 2), 300, 200};
+
+        // Construct the popup
+        if (nk_popup_begin(ctx, NK_POPUP_STATIC, "About", NK_WINDOW_TITLE, s)) {
+            // Displays the About message
+            nk_layout_row_dynamic(ctx, 120, 1);
+            char message[1000];
+            message[0] = '\0';
+            strcat(message, "BuildUp Editor\nA tool for documenting hardware projects\nusing markdown.\nVersion: 0.1-alpha\nSupporters:\nFerdinand, adam-james, Patrick Wagstrom,\nmarked23, Jordan Poles, Anonymous\0");
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_READ_ONLY|NK_EDIT_MULTILINE, message, sizeof(message), nk_filter_default);
+
+            // Displays the OK button to the user
+            nk_layout_row_dynamic(ctx, 25, 1);
+            if (nk_button_label(ctx, "OK")) {
+                about_dialog_active = false;
+                nk_popup_close(ctx);
+            }
+            nk_popup_end(ctx);
+        }
+        else {
+            about_dialog_active = false;
+        }
+    }
 
     nk_end(ctx);
 }

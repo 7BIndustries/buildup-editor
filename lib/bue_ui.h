@@ -44,6 +44,9 @@ char error_popup_message[ERROR_MSG_MAX_LENGTH];  // The message that will be dis
 struct nk_text_edit tedit_state;  // The struct that holds the state of the BuildUp text editor
 markdown_state bu_state;  // Tracks the state of the BuildUp markdown editor
 
+/* Error messages for insert dialogs*/
+char step_link_insert_msg[200] = {'\0'};
+
 // md4c flags for converting markdown to HTML
 static unsigned parser_flags = 0;
 static unsigned renderer_flags = MD_HTML_FLAG_DEBUG;
@@ -829,7 +832,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
      */
     if (step_link_page_dialog_active) {
         // The position and size of the popup
-        struct nk_rect s = {(window_width / 2) - (300 / 2), (window_height / 2) - (260 / 2), 300, 260};
+        struct nk_rect s = {(window_width / 2) - (300 / 2), (window_height / 2) - (290 / 2), 300, 290};
 
         // Construct the popup
         if (nk_popup_begin(ctx, NK_POPUP_STATIC, "Insert Step Link", NK_WINDOW_TITLE, s)) {
@@ -852,6 +855,10 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             nk_layout_row_dynamic(ctx, 25, 1);
             nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX|NK_TEXT_EDIT_SINGLE_LINE, step_link_link_file, sizeof(step_link_link_file), nk_filter_default);
 
+            // Error message field
+            nk_layout_row_dynamic(ctx, 25, 1);
+            nk_label(ctx, step_link_insert_msg, NK_TEXT_LEFT);
+
             // Displays the OK button to the user
             nk_layout_row_dynamic(ctx, 25, 2);
             if (nk_button_label(ctx, "Insert")) {
@@ -867,14 +874,40 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 strcat(step_link_tag, step_link_link_file);
                 strcat(step_link_tag, "){step}");
 
-                // Insert the assembled tag at the current cursor location in the editor
-                nk_textedit_text(&tedit_state, step_link_tag, strlen(step_link_tag));
+                // Assemble the full path to the markdown file
+                char* full_path = malloc(sizeof(file_path) + sizeof(step_link_link_file) + 2);
+                full_path[0] = '\0';
+                strcat(full_path, file_path);
+                strcat(full_path, PATH_SEP);
+                strcat(full_path, step_link_link_file);
 
-                // Close the dialog
-                step_link_page_dialog_active = false;
-                nk_popup_close(ctx);
+                // Make sure that the file exists
+                FILE* md_file;
+                md_file = fopen(full_path, "r");
+                if (md_file == NULL) {
+                    strcat(step_link_insert_msg, "The markdown file you entered does not exist.");
+                }
+                else {
+                    // Make sure any previous error messages are cleared
+                    step_link_insert_msg[0] = '\0';
+
+                    // Insert the assembled tag at the current cursor location in the editor
+                    nk_textedit_text(&tedit_state, step_link_tag, strlen(step_link_tag));
+
+                    // Close the markdown file if it was able to be opened
+                    fclose(md_file);
+
+                    // Close the dialog
+                    step_link_page_dialog_active = false;
+                    nk_popup_close(ctx);
+                }
+
             }
             if (nk_button_label(ctx, "Cancel")) {
+                // Make sure any previous error messages are cleared
+                step_link_insert_msg[0] = '\0';
+
+                // Do the work of closing the dialog
                 step_link_page_dialog_active = false;
                 nk_popup_close(ctx);
             }

@@ -125,6 +125,9 @@ struct nk_context* ui_init(struct XWindow xw) {
     // Initialize the text editor state
     nk_textedit_init_default(&tedit_state);
 
+    // Make sure that the editor string buffer is zero'd out
+    memset(tedit_state.string.buffer.memory.ptr, 0, tedit_state.string.buffer.memory.size);
+
     // Start the markdown editor's state off
     bu_state.is_dirty = false;
     bu_state.prev_markdown_len = 0;
@@ -177,6 +180,14 @@ void set_error_popup(char* message) {
  *      Nothing                                                               *
  *****************************************************************************/
 void save_selected_file() {
+    // If no file is selected, there is no reason to save this file
+    if (selected_path == NULL) {
+        // Let the user know that no file will be saved
+        set_error_popup("There is no selected file to save.");
+        return;
+    }
+
+
     // If there is a selected file path
     if (bu_state.dirty_path != NULL) {
         // Open the dirty file path for writing and write the editor buffer
@@ -259,6 +270,21 @@ void deselect_entire_tree() {
 }
 
 /******************************************************************************
+ * clear_editor -- Clears the markdown editor of all existing text.           *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      None                                                                  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void clear_editor() {
+    // Clear the previous contents of the markdown editor
+    nk_textedit_select_all(&tedit_state);
+    nk_textedit_delete_selection(&tedit_state);
+}
+
+/******************************************************************************
  * check_selected_tree_item -- Handles the logic for when a directory tree    *
  *                             item is selected.                              *
  *                                                                            *
@@ -312,8 +338,7 @@ void check_selected_tree_item(struct directory_contents* contents) {
                 }
                 else {
                     // Clear the previous contents of the markdown editor
-                    nk_textedit_select_all(&tedit_state);
-                    nk_textedit_delete_selection(&tedit_state);
+                    clear_editor();
 
                     // Read all of the lines from the file
                     unsigned int line_count = 0;
@@ -399,8 +424,11 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
                 // Reset the HTML preview text for the new conversion text
                 if (html_preview != NULL) {
+                    // Start over again with the html_preview
                     free(html_preview);
                 }
+
+                // Start over again with the html_preview
                 html_preview = NULL;
 
                 // Preprocess the string to handle all the BuildUp-specific tags
@@ -644,6 +672,16 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
                     // Get the sorted contents at the specified path
                     contents = list_project_dir(file_path);
+
+                    // Clear the markdown editor of the previous contents
+                    clear_editor();
+
+                    // Reset the HTML preview text for the new conversion text
+                    if (html_preview != NULL) {
+                        // Start over again with the html_preview
+                        free(html_preview);
+                    }
+                    html_preview = NULL;
 
                     // If the user gave an invalid directory, let them know
                     if (contents.error == does_not_exist) {

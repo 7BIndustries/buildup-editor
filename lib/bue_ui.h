@@ -273,6 +273,26 @@ void deselect_entire_tree() {
 }
 
 /******************************************************************************
+ * clear_html_preview -- Clears the HTML preview variable, and thus the view. *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      None                                                                  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void clear_html_preview() {
+    // Only free the memory if there is something to free
+    if (html_preview != NULL) {
+        // Start over again with the html_preview
+        free(html_preview);
+    }
+
+    // Start over again with the html_preview
+    html_preview = NULL;
+}
+
+/******************************************************************************
  * clear_editor -- Clears the markdown editor of all existing text.           *
  *                                                                            *
  * Parameters                                                                 *
@@ -327,6 +347,9 @@ void check_selected_tree_item(struct directory_contents* contents) {
         // If the item was previously selected, deselect it
         if (contents->files[i].selected == nk_true && contents->files[i].prev_selected == nk_false) {
             printf("%s is selected.\n", contents->files[i].path);
+
+            // Clear the HTML preview for the next render
+            clear_html_preview();
 
             // Save this as the currently selected path
             selected_path = contents->files[i].path;
@@ -426,13 +449,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 save_selected_file();
 
                 // Reset the HTML preview text for the new conversion text
-                if (html_preview != NULL) {
-                    // Start over again with the html_preview
-                    free(html_preview);
-                }
-
-                // Start over again with the html_preview
-                html_preview = NULL;
+                clear_html_preview();
 
                 // Preprocess the string to handle all the BuildUp-specific tags
                 char* processed_str = preprocess(tedit_state.string.buffer.memory.ptr);
@@ -680,11 +697,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                     clear_editor();
 
                     // Reset the HTML preview text for the new conversion text
-                    if (html_preview != NULL) {
-                        // Start over again with the html_preview
-                        free(html_preview);
-                    }
-                    html_preview = NULL;
+                    clear_html_preview();
 
                     // If the user gave an invalid directory, let them know
                     if (contents.error == does_not_exist) {
@@ -891,15 +904,34 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                     // Make sure any previous error messages are cleared
                     step_link_insert_msg[0] = '\0';
 
-                    // Insert the assembled tag at the current cursor location in the editor
-                    nk_textedit_text(&tedit_state, step_link_tag, strlen(step_link_tag));
+                    // Check to make sure there is a main title in the first few lines of the linked-to file
+                    if (strlen(step_link_link_text) == 1 && step_link_link_text[0] == '.') {
+                        char* line;
+                        char line_temp[1000];
+                        line = fgets(line_temp, sizeof(line_temp), md_file);
+
+                        // If we got something, check to make sure that the line starts with a single hash
+                        if (line != NULL && line[0] != '#') {
+                            // Check to see if the next line has the hash mark in it
+                            line = fgets(line_temp, sizeof(line_temp), md_file);
+                            if (line != NULL && line[0] != '#') {
+                                strcat(step_link_insert_msg, "The linked markdown file has no title (#).");
+                            }
+                        }
+                    }
 
                     // Close the markdown file if it was able to be opened
                     fclose(md_file);
 
-                    // Close the dialog
-                    step_link_page_dialog_active = false;
-                    nk_popup_close(ctx);
+                    // If there is an error message, we do not want to close this dialog
+                    if (step_link_insert_msg[0] == '\0') {
+                        // Insert the assembled tag at the current cursor location in the editor
+                        nk_textedit_text(&tedit_state, step_link_tag, strlen(step_link_tag));
+
+                        // Close the dialog
+                        step_link_page_dialog_active = false;
+                        nk_popup_close(ctx);
+                    }
                 }
 
             }

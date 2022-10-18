@@ -115,6 +115,29 @@ static void process_output(const MD_CHAR* text, MD_SIZE size, void* userdata)
     strncat(html_preview, text, size);
 }
 
+/******************************************************************************
+ * update_preview -- Handles the work of updating the HTML preview.           *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      None                                                                  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void update_html_preview() {
+    // Placeholder for user data that can be passed around
+    struct md_userdata userdata = {.name="Name"};
+
+    // Preprocess the string to handle all the BuildUp-specific tags
+    char* processed_str = preprocess(tedit_state.string.buffer.memory.ptr);
+
+    // Convert the markdown to HTML
+    ret = md_html(processed_str, (MD_SIZE)strlen(processed_str), process_output, (void*) &userdata, parser_flags, renderer_flags);
+    if (ret == -1) {
+        set_error_popup("The markdown failed to parse.");
+    }
+}
+
 /*
  * Handles some initialization functions of the Nuklear based UI.
  */
@@ -391,6 +414,11 @@ void check_selected_tree_item(struct directory_contents* contents) {
 
                 // Make sure to close the file
                 fclose(doc_file);
+
+                // If a markdown file was just opened, render the HTML preview
+                if (string_ends_with(contents->files[i].name, ".md")) {
+                    update_html_preview();
+                }
             }
 
             // Deselect all other tree items
@@ -418,9 +446,6 @@ void check_selected_tree_item(struct directory_contents* contents) {
  *      Nothing                                                               *
  *****************************************************************************/
 void ui_do(struct nk_context* ctx, int window_width, int window_height, int* running) {
-    // Placeholder for user data that can be passed around
-    struct md_userdata userdata = {.name="Name"};
-
     if (nk_begin(ctx, "Main Window", nk_rect(0, 0, window_width, window_height),
         NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR))
     {
@@ -451,14 +476,8 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 // Reset the HTML preview text for the new conversion text
                 clear_html_preview();
 
-                // Preprocess the string to handle all the BuildUp-specific tags
-                char* processed_str = preprocess(tedit_state.string.buffer.memory.ptr);
-
-                // Convert the markdown to HTML
-                ret = md_html(processed_str, (MD_SIZE)strlen(processed_str), process_output, (void*) &userdata, parser_flags, renderer_flags);
-                if (ret == -1) {
-                    printf("The markdown failed to parse.\n");
-                }
+                // Update the HTML preivew
+                update_html_preview();
             }
 
             // Button to export the project
@@ -801,6 +820,10 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 nk_popup_close(ctx);
             }
             if (nk_button_label(ctx, "NO")) {
+                // Mark the open file as not being dirty, even if it still is
+                bu_state.is_dirty = false;
+                bu_state.dirty_path = NULL;
+
                 save_confirm_dialog_active = false;
                 nk_popup_close(ctx);
             }
@@ -934,6 +957,9 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                     }
                 }
 
+                // Let the system know that the file is dirty now
+                bu_state.dirty_path = selected_path;
+                bu_state.is_dirty = true;
             }
             if (nk_button_label(ctx, "Cancel")) {
                 // Make sure any previous error messages are cleared

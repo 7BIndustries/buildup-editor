@@ -115,29 +115,6 @@ static void process_output(const MD_CHAR* text, MD_SIZE size, void* userdata)
     strncat(html_preview, text, size);
 }
 
-/******************************************************************************
- * update_preview -- Handles the work of updating the HTML preview.           *
- *                                                                            *
- * Parameters                                                                 *
- *      None                                                                  *
- *                                                                            *
- * Returns                                                                    *
- *      Nothing                                                               *
- *****************************************************************************/
-void update_html_preview() {
-    // Placeholder for user data that can be passed around
-    struct md_userdata userdata = {.name="Name"};
-
-    // Preprocess the string to handle all the BuildUp-specific tags
-    char* processed_str = preprocess(tedit_state.string.buffer.memory.ptr);
-
-    // Convert the markdown to HTML
-    ret = md_html(processed_str, (MD_SIZE)strlen(processed_str), process_output, (void*) &userdata, parser_flags, renderer_flags);
-    if (ret == -1) {
-        set_error_popup("The markdown failed to parse.");
-    }
-}
-
 /*
  * Handles some initialization functions of the Nuklear based UI.
  */
@@ -193,6 +170,30 @@ void set_error_popup(char* message) {
 
     // Make sure that the dialog will be displayed
     error_popup_active = true;
+}
+
+/******************************************************************************
+ * update_preview -- Handles the work of updating the HTML preview.           *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      None                                                                  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void update_html_preview() {
+    // Placeholder for user data that can be passed around
+    struct md_userdata userdata = {.name="Name"};
+
+    // Preprocess the string to handle all the BuildUp-specific tags
+    char* processed_str = malloc(tedit_state.string.buffer.memory.size);
+    preprocess(processed_str, tedit_state.string.buffer.memory.ptr, selected_path);
+
+    // Convert the markdown to HTML
+    ret = md_html(processed_str, (MD_SIZE)strlen(processed_str), process_output, (void*) &userdata, parser_flags, renderer_flags);
+    if (ret == -1) {
+        set_error_popup("The markdown failed to parse.");
+    }
 }
 
 /******************************************************************************

@@ -34,6 +34,16 @@ void build_link(char* dest, char* md_title, char* md_file, bool is_image) {
     strcat(dest, ")");
 }
 
+/******************************************************************************
+ * strip_title_text -- Removes the hash(es) and extra spaces from a section   *
+ *                     header title.                                          *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      title -- A charcter pointer holding the full markdown section title.  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
 void strip_title_text(char* title) {
     // Remove the has character from the title
     memmove(title, title+1, strlen(title));
@@ -47,6 +57,17 @@ void strip_title_text(char* title) {
         title[strlen(title) - 1] = '\0';
 }
 
+/******************************************************************************
+ * check_for_step_link -- Given a line of markdown, determines whether or not *
+ *                        that line contains a step link.                     *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      line -- A character pointer representing the line of text to check    *
+ *              for the step link.                                            *
+ *                                                                            *
+ * Returns                                                                    *
+ *      A boolean representing whether or not a line contains a step link.    *
+ *****************************************************************************/
 bool check_for_step_link(char* line) {
     // Check to see if there is a step link
     char* link_tag = strstr(line, "{step}");
@@ -57,31 +78,54 @@ bool check_for_step_link(char* line) {
     return false;
 }
 
+/******************************************************************************
+ * handle_step_link -- Given a line that contains a step link, returns a      *
+ *                     properly constructed step link with the title filled   *
+ *                     in.                                                    *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      line -- Character pointer representing the markdown line to transform.*
+ *      base_path -- Path to the current project so that a referenced file's  *
+ *                   title can be pulled from its contents.                   *
+ *                                                                            *
+ * Returns                                                                    *
+ *      A character pointer for the transformed line, with the title properly *
+ *      filled in.                                                            *
+ *****************************************************************************/
 char* handle_step_link(char* line, char* base_path) {
     // Make sure that this line contains a step link
-    char* link_tag = strstr(line, "[");
+    // char* link_tag = strstr(line, "[");
     char* new_line = malloc(sizeof(line) + 250);
     new_line[0] = '\0';
 
     // Make sure that we really did get a step link
-    if (link_tag != NULL) {
-        // Title of the link
-        char md_title[200];
-        md_title[0] = '\0';
+    if (line != NULL) {
+        // Attempt to find the link title
+        char* md_title = strdup(line);
+        md_title = strchr(md_title, '[');
+        md_title = md_title + 1;
+        cut_string(md_title, ']');
 
-        // File that the link points to
-        char md_file[200];
-        md_file[0] = '\0';
+        // Attempt to find the link file
+        char* md_file = strdup(line);
+        md_file = strchr(md_file, '(');
+        md_file = md_file + 1;
+        cut_string(md_file, ')');
 
-        // Attempt to deconstruct the step link structure
-        sscanf(link_tag, "[%s](%s){step}", md_title, md_file);
+        // Construct the path to the linked file
+        char* path_start = strdup(base_path);
+        cut_string_last(path_start, PATH_SEP[0]);
+        if (strlen(base_path) < strlen(path_start) + strlen(md_file)) {
+            path_start = realloc(path_start, sizeof(path_start) + sizeof(md_file) + sizeof(PATH_SEP) + 1);
+        }
+        strcat(path_start, PATH_SEP);
+        strcat(path_start, md_file);
 
         // If there is a linked markdown file, pull the title from that
         if (md_title[0] == '.') {
-            printf("%s\n", base_path);
             // Open the documentation file and make sure that the file opened properly
             FILE* doc_file;
-            doc_file = fopen(base_path, "r");
+            doc_file = fopen(path_start, "r");
             if (doc_file == NULL) {
                 printf("Could not open the required file: %s.\n", md_file);
             }

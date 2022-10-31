@@ -87,3 +87,45 @@ void append_char_to_string(char* prefix, char suffix) {
     prefix[len] = suffix;
     prefix[len + 1] = '\0';
 }
+
+/******************************************************************************
+ * split_string -- Cuts a given string at the first occurence of the char.    *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      string -- The string to search for the delimiter character.           *
+ *      delimiter -- The character to use to cut the string by adding a null  *
+ *                   zero.                                                    *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void cut_string(char* string, char delimiter) {
+    // Step through all of the characters in the given string
+    for (long unsigned int i = 0; i < strlen(string); i++) {
+        if (string[i] == delimiter) {
+            string[i] = '\0';
+            break;
+        }
+    }
+}
+
+/******************************************************************************
+ * cut_string_last -- Cuts a given string at the last occurence of the char.  *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      string -- The string to search in reverse for the delimiter char.     *
+ *      delimiter -- The character to use to cut the string by adding a null  *
+ *                   zero.                                                    *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void cut_string_last(char* string, char delimiter) {
+    // Step throuugh the string in reverse order
+    for (long unsigned int i = strlen(string) - 1; i > 0; i--) {
+        if (string[i] == delimiter) {
+            string[i] = '\0';
+            break;
+        }
+    }
+}

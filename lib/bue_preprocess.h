@@ -35,6 +35,46 @@ void build_link(char* dest, char* md_title, char* md_file, bool is_image) {
 }
 
 /******************************************************************************
+ * get_link_title -- Extracts the title from the given markdown link text.    *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      link_line -- The line of text containing the markdown link.           *
+ *                                                                            *
+ * Returns                                                                    *
+ *      A string representing the extracted link title.                       *
+ *****************************************************************************/
+char* get_link_title(char* link_line) {
+    char* md_title = strdup(link_line);
+
+    // Attempt to find the link title
+    md_title = strchr(md_title, '[');
+    md_title = md_title + 1;
+    cut_string(md_title, ']');
+
+    return md_title;
+}
+
+/******************************************************************************
+ * get_link_file -- Extracts the file name from the given markdown link text. *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      link_line -- The line of text containing the markdown link.           *
+ *                                                                            *
+ * Returns                                                                    *
+ *      A string representing the extracted link file name.                   *
+ *****************************************************************************/
+char* get_link_file(char* link_line) {
+    char* md_file = strdup(link_line);
+
+    // Attempt to find the link file
+    md_file = strchr(md_file, '(');
+    md_file = md_file + 1;
+    cut_string(md_file, ')');
+
+    return md_file;
+}
+
+/******************************************************************************
  * strip_title_text -- Removes the hash(es) and extra spaces from a section   *
  *                     header title.                                          *
  *                                                                            *
@@ -100,17 +140,9 @@ char* handle_step_link(char* line, char* base_path) {
 
     // Make sure that we really did get a step link
     if (line != NULL) {
-        // Attempt to find the link title
-        char* md_title = strdup(line);
-        md_title = strchr(md_title, '[');
-        md_title = md_title + 1;
-        cut_string(md_title, ']');
-
-        // Attempt to find the link file
-        char* md_file = strdup(line);
-        md_file = strchr(md_file, '(');
-        md_file = md_file + 1;
-        cut_string(md_file, ')');
+        // Pull the title and the file from the given line
+        char* md_title = get_link_title(line);
+        char* md_file = get_link_file(line);
 
         // Construct the path to the linked file
         char* path_start = strdup(base_path);

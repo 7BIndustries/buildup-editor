@@ -129,3 +129,37 @@ void cut_string_last(char* string, char delimiter) {
         }
     }
 }
+
+/******************************************************************************
+ * replace_file_extension -- Replaces whatever the end of the file name ext-  *
+ *                           ension is with the ending .html. The purpose of  *
+ *                           this is is to convert .md file links to .html.   *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      string -- The string holding the file name to change the ending of.   *
+ *      new_ending -- The new file extension to replace the end with.         *
+ *                                                                            *
+ * Returns                                                                    *
+ *      A string which holds the file name with the extension changed.        *
+ *****************************************************************************/
+char* replace_file_extension(char* string, char* new_ending) {
+    // Find the last instance of the period character
+    char* extension = strrchr(string, '.');
+
+    char* new_filename = NULL;
+
+    // See if the string needs to be resized
+    if (strlen(extension) < strlen(new_ending)) {
+        new_filename = malloc(sizeof(string) + sizeof(new_ending));
+        memcpy(new_filename, string, strlen(string) + 1);
+    }
+    else {
+        new_filename = strdup(string);
+    }
+
+    // Change the line ending
+    cut_string_last(new_filename, '.');
+    strcat(new_filename, new_ending);
+
+    return new_filename;
+}

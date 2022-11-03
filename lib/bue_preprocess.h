@@ -159,7 +159,7 @@ char* handle_step_link(char* line, char* base_path) {
             FILE* doc_file;
             doc_file = fopen(path_start, "r");
             if (doc_file == NULL) {
-                printf("Could not open the required file: %s.\n", md_file);
+                printf("Could not open the required file: %s.\n", path_start);
             }
             else {
                 // Get a line from the file and see if it is a title
@@ -170,6 +170,10 @@ char* handle_step_link(char* line, char* base_path) {
                     printf("The given file was not readable.\n");
                 }
                 else {
+                    // Handle converting the md file extension to html
+                    if (strcmp(strrchr(md_file, '.'), ".md") == 0)
+                        md_file = replace_file_extension(md_file, ".html");
+
                     // Check to see if there is a title line
                     if (line[0] == '#') {
                         // We want only the text of the title, and not the hash or newline

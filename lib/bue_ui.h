@@ -36,7 +36,8 @@ char* html_preview = NULL;  // Converted HTML text based on the markdowns
 struct directory_contents contents;  // Listed directory contents
 int ret;  // The return code for the markdown to HTML conversions
 struct nk_rect bounds;  // The bounds of the popup dialog
-bool step_link_page_dialog_active = false;  //Tracks whether or not the step link page dialog should be opened
+bool step_link_page_dialog_active = false;  // Tracks whether or not the step link page dialog should be opened
+bool image_link_dialog_active = false;  // Tracks whether or not the image dialog should be opened
 bool save_confirm_dialog_active = false;  // Tracks whether or not the save confirmation dialog should be opened
 bool about_dialog_active = false;  // Tracks whether or not the About dialog should be opened
 bool error_popup_active = false;  // Tracks whether or not the error popup should be displayed
@@ -46,6 +47,7 @@ markdown_state bu_state;  // Tracks the state of the BuildUp markdown editor
 
 /* Error messages for insert dialogs*/
 char step_link_insert_msg[200] = {'\0'};
+char insert_image_msg[200] = {'\0'};
 
 // md4c flags for converting markdown to HTML
 static unsigned parser_flags = 0;
@@ -59,6 +61,8 @@ static int show_open_project = nk_false;
  */
 char step_link_link_file[1000];  // The page file to link to
 char step_link_link_text[1000];  // The link text field
+char image_alt_text[1000];  // The image alternate text field
+char image_path[1000];  // The path to the image file
 
 // X11 window representation
 // Linux only
@@ -547,6 +551,11 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                 step_link_page_dialog_active = true;
             }
 
+            // For inserting an image
+            if (nk_menu_item_label(ctx, "IMAGE", NK_TEXT_LEFT)) {
+                image_link_dialog_active = true;
+            }
+
             nk_menu_end(ctx);
         }
 
@@ -671,12 +680,12 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         // BuildUp markdown editor text field
         nk_layout_row_push(ctx, 0.4f);
         tedit_state.single_line = 0;
-        nk_edit_buffer(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE, &tedit_state, nk_filter_default);
+        nk_edit_buffer(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE|NK_EDIT_CLIPBOARD, &tedit_state, nk_filter_default);
 
         // Output HTML
         nk_layout_row_push(ctx, 0.4f);
         if (html_preview != NULL)
-            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE, html_preview, strlen(html_preview) + 1, nk_filter_default);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD|NK_EDIT_MULTILINE|NK_EDIT_CLIPBOARD, html_preview, strlen(html_preview) + 1, nk_filter_default);
 
         // Check to see if the text has changed
         if (tedit_state.string.len != bu_state.prev_markdown_len) {
@@ -899,9 +908,6 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             // Displays the OK button to the user
             nk_layout_row_dynamic(ctx, 25, 2);
             if (nk_button_label(ctx, "Insert")) {
-                printf("%s\n", step_link_link_text);
-                printf("%s\n", step_link_link_file);
-
                 // Assemble the BuildUp tag
                 char step_link_tag[2000];
                 step_link_tag[0] = '\0';
@@ -975,6 +981,115 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
         }
         else {
             step_link_page_dialog_active = false;
+        }
+    }
+
+    // The image insert dialog
+    if (image_link_dialog_active) {
+        // The position and size of the popup
+        struct nk_rect s = {(window_width / 2) - (300 / 2), (window_height / 2) - (310 / 2), 300, 310};
+
+        // Construct the popup
+        if (nk_popup_begin(ctx, NK_POPUP_STATIC, "Image Insert", NK_WINDOW_TITLE, s)) {
+            // Displayys the description
+            nk_layout_row_dynamic(ctx, 70, 1);
+            char message[1000];
+            message[0] = '\0';
+            strcat(message, "Inserts an image into the document. Any\nimages that are in another location on disk\nwill be copied to the local images\ndirectory.");
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_READ_ONLY|NK_EDIT_MULTILINE, message, sizeof(message), nk_filter_default);
+
+            // The image alt text field to be shown in the HTML
+            nk_layout_row_dynamic(ctx, 25, 1);
+            nk_label(ctx, "Alt Text", NK_TEXT_LEFT);
+            nk_layout_row_dynamic(ctx, 25, 1);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX|NK_TEXT_EDIT_SINGLE_LINE, image_alt_text, sizeof(image_alt_text), nk_filter_default);
+
+            // The field for the inserted file name
+            nk_layout_row_dynamic(ctx, 25, 1);
+            nk_label(ctx, "Image to Insert", NK_TEXT_LEFT);
+            nk_layout_row_dynamic(ctx, 25, 1);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_BOX|NK_TEXT_EDIT_SINGLE_LINE, image_path, sizeof(image_path), nk_filter_default);
+
+            // Error message field
+            nk_layout_row_dynamic(ctx, 25, 1);
+            nk_label(ctx, insert_image_msg, NK_TEXT_LEFT);
+
+            // Displays the OK/insert button to the user
+            nk_layout_row_dynamic(ctx, 25, 2);
+            if (nk_button_label(ctx, "Insert")) {
+                // Make sure any previous error messages are cleared
+                insert_image_msg[0] = '\0';
+
+                // Make sure that the user has opened a project before doing an insert
+                if (strlen(file_path) <= 3 || (string_ends_with(selected_path, ".md") && string_ends_with(selected_path, ".yaml"))) {
+                    strcat(insert_image_msg, "Open a markdown or yaml file to insert.");
+                }
+
+                // Holds the full path to the image
+                char* full_path = malloc(sizeof(file_path) + sizeof(image_path) + 2);
+
+                // Check to see if the user has provided a full path to the image
+                if (image_path[1] != ':' || image_path[0] != '/') {
+                    // Assemble the full path to the markdown file
+                    full_path[0] = '\0';
+                    strcat(full_path, file_path);
+                    strcat(full_path, PATH_SEP);
+                    strcat(full_path, image_path);
+                }
+                else {
+                    full_path = image_path;
+                }
+
+                // Make sure that the file exists
+                FILE* md_file;
+                md_file = fopen(full_path, "r");
+                if (md_file == NULL) {
+                    strcat(insert_image_msg, "The selected image file does not exist.");
+                }
+                else {
+                    // Check to make sure that the user has entered data into the required fields
+                    if (image_alt_text[0] == '\0') {
+                        strcat(insert_image_msg, "Please enter alternate text.");
+                    }
+                    else if (image_path[0] == '\0') {
+                        strcat(insert_image_msg, "Please enter an image file name.");
+                    }
+
+                    // If there is an error message, we do not want to close this dialog
+                    if (insert_image_msg[0] == '\0') {
+                        // Assemble the BuildUp tag
+                        char image_tag[2000];
+                        image_tag[0] = '\0';
+                        strcat(image_tag, "![");
+                        strcat(image_tag, image_alt_text);
+                        strcat(image_tag, "](");
+                        strcat(image_tag, image_path);
+                        strcat(image_tag, ")");
+
+                        // Insert the assembled tag at the current cursor location in the editor
+                        nk_textedit_text(&tedit_state, image_tag, strlen(image_tag));
+
+                        // Close the dialog
+                        image_link_dialog_active = false;
+                        nk_popup_close(ctx);
+                    }
+                }
+            }
+
+            // The Cancel button
+            if (nk_button_label(ctx, "Cancel")) {
+                // Make sure any previous error messages are cleared
+                insert_image_msg[0] = '\0';
+
+                // Do the work of closing the dialog
+                nk_popup_close(ctx);
+                image_link_dialog_active = false;
+            }
+
+            nk_popup_end(ctx);
+        }
+        else {
+            image_link_dialog_active = false;
         }
     }
 

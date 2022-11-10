@@ -12,6 +12,9 @@
 
 /* Filesystem path separators vary by OS */
 #ifdef __linux__
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <unistd.h>
     const char* PATH_SEP = "/";  // The filesystem path separator for Linux
     const char* NEWLINE = "\n";  // The newline character for Linux
 #elif defined __unix__
@@ -223,7 +226,7 @@ dir_contents list_dir_contents(char* dir_path, bool sort) {
     }
 
     // If the caller has requested a sort, do that now
-    if (sort) {
+    if (!sort) {
         printf("Sorting...\n");
     }
 
@@ -409,4 +412,89 @@ dir_contents list_project_dir(char* dir_path) {
     }
 
     return contents;
+}
+
+/******************************************************************************
+ * create_dir_nix -- Creates a directory properly on Linux or Unix.           *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      path -- A character pointer representing an absolute path of the      *
+ *              directory to create.                                          *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+int create_dir_nix(char* path) {
+    int ret = 1;  // The return value from the call to make the directory
+    struct stat st = {0};
+
+    // Create the directory if it does not already exist
+    if (stat(path, &st) == -1) {
+        ret = mkdir(path, 0700);
+    }
+    else {
+        ret = 0;
+    }
+
+    return ret;
+}
+
+/******************************************************************************
+ * create_dir_win -- Creates a directory properly on Windows.                 *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      path -- A character pointer representing an absolute path of the      *
+ *              directory to create.                                          *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+int create_dir_win(char* path) {
+    // TODO: Implement this
+
+    printf("%s\n", path);
+    return 1;
+}
+
+/******************************************************************************
+ * create_dir_osx -- Creates a directory properly on MacOS.                   *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      path -- A character pointer representing an absolute path of the      *
+ *              directory to create.                                          *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+int create_dir_osx(char* path) {
+    // TODO: Implement this
+
+    printf("%s\n", path);
+    return 1;
+}
+
+/******************************************************************************
+ * create_dir -- Delegates to other functions to create a directory properly  *
+ *               based on which operating system the application is running   *
+ *               on.                                                          *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      path -- A character pointer representing an absolute path of the      *
+ *              directory to create.                                          *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+int create_dir(char* path) {
+    #ifdef __linux__
+        return create_dir_nix(path);
+    #elif defined __unix__
+        return create_dir_nix(path);
+    #elif defined _WIN32
+        return create_dir_win(path);
+    #elif defined __APPLE__ && __MACH__
+        return create_dir_osx(path);
+    #endif
+
+    return 0;
 }

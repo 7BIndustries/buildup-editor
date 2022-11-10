@@ -1,10 +1,16 @@
-// #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
 
-/*
- * Provides a timestamp that can be used for a timer.
- */
+/******************************************************************************
+ * timestamp - Provides a timestamp that can be used for a timer.             *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      None                                                                  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      A long iteger representing the current number of milliseconds that    *
+ *      have elapsed today.                                                   *
+ *****************************************************************************/
 static long timestamp(void)
 {
     struct timeval tv;
@@ -12,9 +18,17 @@ static long timestamp(void)
     return (long)((long)tv.tv_sec * 1000 + (long)tv.tv_usec/1000);
 }
 
-/*
- * Adds a delay into the UI loop of Nuklear to keep from maxing out the CPU.
- */
+/******************************************************************************
+ * sleep_for -- Adds a delay into the UI loop of Nuklear to keep from maxing  *
+ *              out the CPU.                                                  *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      t -- A long integer representing the number of milliseconds to sleep  *
+ *          for.                                                              *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
 static void sleep_for(long t)
 {
     struct timespec req;
@@ -162,4 +176,23 @@ char* replace_file_extension(char* string, char* new_ending) {
     strcat(new_filename, new_ending);
 
     return new_filename;
+}
+
+/******************************************************************************
+ * str_size -- Given a character pointer, gives the size of the string, in    *
+ *             bytes, including the null zero at the end.                     *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      string -- Character pointer that holds the string to get the true     *
+ *                byte-size of.                                               *
+ *                                                                            *
+ * Returns                                                                    *
+ *      A size_t representing the total size of the string, including the     *
+ *      null zero.                                                            *
+ *****************************************************************************/
+size_t str_size(const char* string) {
+    // Calculate the size based on the size of a char and add one for the null zero
+    size_t sz = (strlen(string) * sizeof(char)) + (1 * sizeof(char));
+
+    return sz;
 }

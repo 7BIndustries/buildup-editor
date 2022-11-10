@@ -190,11 +190,10 @@ void update_html_preview() {
     struct md_userdata userdata = {.name="Name"};
 
     // Preprocess the string to handle all the BuildUp-specific tags
-    char* processed_str = malloc(tedit_state.string.buffer.memory.size);
-    preprocess(processed_str, tedit_state.string.buffer.memory.ptr, selected_path);
+    char* processed_str = preprocess((char*)tedit_state.string.buffer.memory.ptr, selected_path);
 
     // Convert the markdown to HTML
-    ret = md_html(processed_str, (MD_SIZE)strlen(processed_str), process_output, (void*) &userdata, parser_flags, renderer_flags);
+    ret = md_html(processed_str, (MD_SIZE)str_size(processed_str), process_output, (void*) &userdata, parser_flags, renderer_flags);
     if (ret == -1) {
         set_error_popup("The markdown failed to parse.");
     }
@@ -395,25 +394,13 @@ void check_selected_tree_item(struct directory_contents* contents) {
                     clear_editor();
 
                     // Read all of the lines from the file
-                    unsigned int line_count = 0;
-                    while(1) {
-                        char* line;
-                        char line_temp[1000];
-                        line = fgets(line_temp, sizeof(line_temp), doc_file);
+                    char line_temp[1000] = {'\0'};
+                    while(fgets(line_temp, sizeof(line_temp), doc_file) != NULL) {
+                        // Add the line read from the file to the markdown editor
+                        nk_textedit_text(&tedit_state, line_temp, strlen(line_temp));
 
-                        // Leave this line reading loop if we have reached the end of the file or an error
-                        if (line == NULL) {
-                            break;
-                        }
-                        else {
-                            // Add the line read from the file to the markdown editor
-                            nk_textedit_text(&tedit_state, line, strlen(line));
-
-                            // Save the current text length as the previous so the file will not be marked as dirty
-                            bu_state.prev_markdown_len = tedit_state.string.len;
-                        }
-
-                        line_count++;
+                        // Save the current text length as the previous so the file will not be marked as dirty
+                        bu_state.prev_markdown_len = tedit_state.string.len;
                     }
                 }
 
@@ -487,7 +474,57 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
             // Button to export the project
             if (nk_menu_item_label(ctx, "EXPORT", NK_TEXT_LEFT)) {
-                printf("Exporting project...\n");
+                // If there is nothing to export, let the user know
+                if (selected_path == NULL) {
+                    set_error_popup("You must first open a project to use the\nexport feature.");
+                }
+                else {
+                    // Extract the base path
+                    char* base_path = strdup(selected_path);
+                    cut_string_last(base_path, PATH_SEP[0]);
+
+                    // Extract the file name without the extension
+                    char* export_file_base = strrchr(strdup(selected_path), PATH_SEP[0]);
+                    export_file_base++;
+                    cut_string_last(export_file_base, '.');
+
+                    // Export happens to the _site directory within the project root directory
+                    char* site_dir = "_site";
+                    char* extension = ".html";
+
+                    // Saves the parent path to see if we need to create the _site directory
+                    char* site_path = malloc(sizeof(base_path) + sizeof(PATH_SEP) + sizeof(site_dir) + 1);
+                    site_path[0] = '\0';
+                    strcat(site_path, base_path);
+                    strcat(site_path, PATH_SEP);
+                    strcat(site_path, site_dir);
+
+                    // Try to create the directory and see if it succeeds
+                    int res = create_dir(site_path);
+                    if (res != 0)
+                        set_error_popup("There was an error creating the\n_site directory.");
+
+                    // Create a string to hold all the parts of the path
+                    char* export_path = malloc(sizeof(base_path) + sizeof(PATH_SEP) + sizeof(site_dir) + sizeof(PATH_SEP) + sizeof(export_file_base) + sizeof(extension) + 1);
+                    export_path[0] = '\0';
+                    strcat(export_path, site_path);
+                    strcat(export_path, PATH_SEP);
+                    strcat(export_path, export_file_base);
+                    strcat(export_path, extension);
+
+                    // Write the contents of the HTML preview to the file
+                    FILE* html_file;
+                    html_file = fopen(export_path, "w");
+                    if (html_file == NULL) {
+                        strcat(step_link_insert_msg, "Unable to write to an HTML file.");
+                    }
+                    else {
+                        fputs(html_preview, html_file);
+                    }
+                    fclose(html_file);
+
+                    printf("%s\n", export_path);
+                }
             }
 
             // Button to close the app

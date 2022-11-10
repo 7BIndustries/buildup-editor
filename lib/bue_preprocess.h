@@ -109,6 +109,24 @@ void strip_title_text(char* title) {
  *      A boolean representing whether or not a line contains a step link.    *
  *****************************************************************************/
 bool check_for_step_link(char* line) {
+    // Check to make sure that the proper characters are present in the link text
+    char* temp_char = strstr(line, "[");
+    if (temp_char == NULL) {
+        return false;
+    }
+    temp_char = strstr(line, "]");
+    if (temp_char == NULL) {
+        return false;
+    }
+    temp_char = strstr(line, "(");
+    if (temp_char == NULL) {
+        return false;
+    }
+    temp_char = strstr(line, ")");
+    if (temp_char == NULL) {
+        return false;
+    }
+
     // Check to see if there is a step link
     char* link_tag = strstr(line, "{step}");
     if (link_tag != NULL) {
@@ -116,6 +134,34 @@ bool check_for_step_link(char* line) {
     }
 
     return false;
+}
+
+/******************************************************************************
+ * build_link_line -- Takes the pieces of a line containing a buildup link    *
+ *                    tag and puts them together again to form a proper link  *
+ *                    line.                                                   *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      new_line -- Pointer to the completed line.                            *
+ *      before -- The start of the original line that needs to be preserved.  *
+ *      md_title -- The title of the markdown link.                           *
+ *      md_file -- The relative file path for the markdown link.              *
+ *      after -- The end of the original line that needs to be preserved.     *
+ *                                                                            *
+ * Returns                                                                    *
+ *      A pointer to the newly assembled link line.                           *
+ *****************************************************************************/
+char* build_link_line(char* new_line, char* before, char* md_title, char* md_file, char* after) {
+    // Make sure there is enough space in memory for the newly assembled line
+    new_line = realloc(new_line, str_size(before) + str_size(md_title) + str_size(md_file) + str_size(after) + 5);
+    new_line[0] = '\0';
+
+    // Assemble what was before the link, the link, and what was after the link
+    strcat(new_line, before);
+    build_link(new_line, md_title, md_file, false);
+    strcat(new_line, after);
+
+    return new_line;
 }
 
 /******************************************************************************
@@ -133,10 +179,15 @@ bool check_for_step_link(char* line) {
  *      filled in.                                                            *
  *****************************************************************************/
 char* handle_step_link(char* line, char* base_path) {
-    // Make sure that this line contains a step link
-    // char* link_tag = strstr(line, "[");
-    char* new_line = malloc(sizeof(line) + 250);
-    new_line[0] = '\0';
+    // Save the parts of the line before and after the step link
+    char* before = strdup(line);
+    cut_string(before, '[');
+    char* after = strdup(line);
+    after = strrchr(after, '}');
+    after++;
+
+    // Make sure that the converted line has a spot in memory
+    char* new_line = NULL;
 
     // Make sure that we really did get a step link
     if (line != NULL) {
@@ -148,7 +199,7 @@ char* handle_step_link(char* line, char* base_path) {
         char* path_start = strdup(base_path);
         cut_string_last(path_start, PATH_SEP[0]);
         if (strlen(base_path) < strlen(path_start) + strlen(md_file)) {
-            path_start = realloc(path_start, sizeof(path_start) + sizeof(md_file) + sizeof(PATH_SEP) + 1);
+            path_start = realloc(path_start, str_size(path_start) + str_size(md_file) + str_size(PATH_SEP) + 1);
         }
         strcat(path_start, PATH_SEP);
         strcat(path_start, md_file);
@@ -163,36 +214,33 @@ char* handle_step_link(char* line, char* base_path) {
             }
             else {
                 // Get a line from the file and see if it is a title
-                char* line;
-                char line_temp[1000];
-                line = fgets(line_temp, sizeof(line_temp), doc_file);
-                if (line == NULL) {
-                    printf("The given file was not readable.\n");
-                }
-                else {
-                    // Handle converting the md file extension to html
-                    if (strcmp(strrchr(md_file, '.'), ".md") == 0)
-                        md_file = replace_file_extension(md_file, ".html");
+                char line_temp[10000];
+                line_temp[0] = '\0';
 
-                    // Check to see if there is a title line
-                    if (line[0] == '#') {
+                // Handle converting the md file extension to html
+                if (strcmp(strrchr(md_file, '.'), ".md") == 0)
+                    md_file = replace_file_extension(md_file, ".html");
+
+                // Step through the lines of the file until we find a top level title header
+                bool title_found = false;
+                while (fgets(line_temp, sizeof(line_temp), doc_file) != NULL) {
+                    // If we have found a title line, extract the title
+                    if (line_temp[0] == '#') {
                         // We want only the text of the title, and not the hash or newline
-                        strip_title_text(line);
+                        strip_title_text(line_temp);
 
                         // Build the updated link with the file name
-                        build_link(new_line, line, md_file, false);
-                    }
-                    else {
-                        line = fgets(line_temp, sizeof(line_temp), doc_file);
-                        if (line != NULL && line[0] == '#') {
-                            // We want only the text of the title, and not the hash or newline
-                            strip_title_text(line);
+                        new_line = build_link_line(new_line, before, strdup(line_temp), md_file, after);
 
-                            // Build the updated link with the file name
-                            build_link(new_line, line, md_file, false);
-                        }
+                        // We do not need to keep looking
+                        title_found = true;
+                        break;
                     }
                 }
+
+                // If no title was found, provide some warning
+                if (!title_found)
+                    printf("No title found in file: %s", path_start);
             }
 
             // Make sure that we release the resources associated with the doc file
@@ -200,7 +248,7 @@ char* handle_step_link(char* line, char* base_path) {
         }
         else {
             // Build the updated link with the file name
-            build_link(new_line, md_title, md_file, false);
+            new_line = build_link_line(new_line, before, line, md_file, after);
         }
     }
 
@@ -220,9 +268,10 @@ char* handle_step_link(char* line, char* base_path) {
  *      A character pointer to a string with all of the BuildUp tags replaced *
  *      with their collated markdown data.                                    *
  *****************************************************************************/
-void preprocess(char* new_md, char* buildup_md, char* base_path) {
+char* preprocess(char* buildup_md, char* base_path) {
     char* line;
     char* old_md = strdup(buildup_md);
+    char* new_md = malloc(sizeof(char));
     new_md[0] = '\0';
 
     // Get the first line
@@ -230,12 +279,26 @@ void preprocess(char* new_md, char* buildup_md, char* base_path) {
 
     // Step through each line of the content
     while (line != NULL) {
+        // Save the current size of the processed markdown string
+        size_t new_md_size = str_size(new_md);
+
         // Handle the step link
         if (check_for_step_link(line)) {
-            strcat(new_md, handle_step_link(line, base_path));
+            // Get the new step link processed from the line
+            char* new_step_link = handle_step_link(line, base_path);
+
+            // Resize the markdown variable appropriately
+            new_md = realloc(new_md, new_md_size + str_size(new_step_link) + str_size(NEWLINE) + 1);
+
+            // Add the new link to the text
+            strcat(new_md, new_step_link);
             strcat(new_md, NEWLINE);
         }
         else {
+            // Resize the new markdown string to hold the new data
+            new_md = realloc(new_md, new_md_size + str_size(line) + str_size(NEWLINE) + 1);
+
+            // Add the unchanged line back to the text
             strcat(new_md, line);
             strcat(new_md, NEWLINE);
         }
@@ -243,4 +306,6 @@ void preprocess(char* new_md, char* buildup_md, char* base_path) {
         // Get the next line
         line = strtok(NULL, NEWLINE);
    }
+
+    return new_md;
 }

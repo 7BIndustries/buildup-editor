@@ -978,12 +978,20 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                         line = fgets(line_temp, sizeof(line_temp), md_file);
 
                         // If we got something, check to make sure that the line starts with a single hash
-                        if (line != NULL && line[0] != '#') {
+                        bool found_title = false;
+                        while (line != NULL) {
+                            if (line[0] == '#') {
+                                found_title = true;
+                                break;
+                            }
+
                             // Check to see if the next line has the hash mark in it
                             line = fgets(line_temp, sizeof(line_temp), md_file);
-                            if (line != NULL && line[0] != '#') {
-                                strcat(step_link_insert_msg, "The linked markdown file has no title (#).");
-                            }
+                        }
+
+                        // If we did not find a title in the file, alert the user
+                        if (!found_title) {
+                            strcat(step_link_insert_msg, "The linked markdown file has no title (#).");
                         }
                     }
 

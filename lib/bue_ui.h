@@ -369,6 +369,24 @@ void cut_copy_to_clipboard() {
 }
 
 /******************************************************************************
+ * paste_from_clipboard -- Takes the text that is in the system clipboard and *
+ *                         puts it at the current cursor position in the      *
+ *                         markdown editor.                                   *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      None                                                                  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void paste_from_clipboard() {
+    char* text = clipboard_text(cb);
+
+    // Add the clipboard text into the markdown editor
+    nk_textedit_text(&tedit_state, text, strlen(text));
+}
+
+/******************************************************************************
  * check_selected_tree_item -- Handles the logic for when a directory tree    *
  *                             item is selected.                              *
  *                                                                            *
@@ -598,7 +616,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
             // The paste feature for the markdown editor
             if (nk_menu_item_label(ctx, "PASTE", NK_TEXT_LEFT)) {
-                printf("Pasting from the clipboard...\n");
+                paste_from_clipboard();
             }
 
             // Opens the settings dialog for the user

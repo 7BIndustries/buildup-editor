@@ -190,6 +190,9 @@ void set_error_popup(char* message) {
  *      Nothing                                                               *
  *****************************************************************************/
 void update_html_preview() {
+    // Reset the HTML preview text for the new conversion text
+    clear_html_preview();
+
     // Placeholder for user data that can be passed around
     struct md_userdata userdata = {.name="Name"};
 
@@ -516,9 +519,6 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
             if (nk_menu_item_label(ctx, "SAVE", NK_TEXT_LEFT)) {
                 // Save the markdown file that is open
                 save_selected_file();
-
-                // Reset the HTML preview text for the new conversion text
-                clear_html_preview();
 
                 // Update the HTML preivew
                 update_html_preview();
@@ -1057,6 +1057,9 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
                         // Insert the assembled tag at the current cursor location in the editor
                         nk_textedit_text(&tedit_state, step_link_tag, strlen(step_link_tag));
 
+                        // Re-render the HTML preview
+                        update_html_preview();
+
                         // Close the dialog
                         step_link_page_dialog_active = false;
                         nk_popup_close(ctx);
@@ -1167,6 +1170,9 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
                         // Insert the assembled tag at the current cursor location in the editor
                         nk_textedit_text(&tedit_state, image_tag, strlen(image_tag));
+
+                        // Re-render the HTML preview
+                        update_html_preview();
 
                         // Close the dialog
                         image_link_dialog_active = false;

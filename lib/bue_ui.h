@@ -44,6 +44,7 @@ bool error_popup_active = false;  // Tracks whether or not the error popup shoul
 char error_popup_message[ERROR_MSG_MAX_LENGTH];  // The message that will be displayed in the error popup
 struct nk_text_edit tedit_state;  // The struct that holds the state of the BuildUp text editor
 markdown_state bu_state;  // Tracks the state of the BuildUp markdown editor
+clipboard_c *cb;  // Used to copy data to/from the clipboard
 
 /* Error messages for insert dialogs*/
 char step_link_insert_msg[200] = {'\0'};
@@ -145,6 +146,9 @@ struct nk_context* ui_init(struct XWindow xw) {
     strcat(step_link_link_file, "file_to_link_to.md");
     step_link_link_text[0] = '.';
     step_link_link_text[1] = '\0';
+
+    // Set up the clipboard
+    cb = clipboard_new(NULL);
 
     return ctx;
 }
@@ -332,6 +336,36 @@ void clear_editor() {
     // Clear the previous contents of the markdown editor
     nk_textedit_select_all(&tedit_state);
     nk_textedit_delete_selection(&tedit_state);
+}
+
+/******************************************************************************
+ * cut_copy_to_clipboard -- Allows the cut and copy commands to put text in   *
+ *                          the system's clipboard.                           *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      None                                                                  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void cut_copy_to_clipboard() {
+    int glyph_len;
+    nk_rune unicode;
+    const char *text;
+    int start = tedit_state.select_start;
+    int ending = tedit_state.select_end;
+
+    // Get the selected text from the markdown editor control
+    int begin = NK_MIN(start, ending);
+    int end = NK_MAX(start, ending);
+    text = nk_str_at_const(&tedit_state.string, begin, &unicode, &glyph_len);
+    text = strndup(text, end - begin);
+
+    // Make sure we have data to copy to the clipboard
+    if (text) {
+        // Copy the markdown editor's selected text to the system clipboard
+        clipboard_set_text(cb, text);
+    }
 }
 
 /******************************************************************************
@@ -529,6 +563,7 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
             // Button to close the app
             if (nk_menu_item_label(ctx, "CLOSE", NK_TEXT_LEFT)) {
+                clipboard_free(cb);
                 *running = 0;
             }
 
@@ -552,12 +587,13 @@ void ui_do(struct nk_context* ctx, int window_width, int window_height, int* run
 
             // The copy feature for the markdown editor
             if (nk_menu_item_label(ctx, "CUT", NK_TEXT_LEFT)) {
-                printf("Cutting to the clipboard...\n");
+                cut_copy_to_clipboard();
+                nk_textedit_delete_selection(&tedit_state);
             }
 
             // The copy feature for the markdown editor
             if (nk_menu_item_label(ctx, "COPY", NK_TEXT_LEFT)) {
-                printf("Copying to the clipboard...\n");
+                cut_copy_to_clipboard();
             }
 
             // The paste feature for the markdown editor

@@ -31,6 +31,7 @@
 #include "external/nuklear_xlib.h"
 #include "external/md4c.h"
 #include "external/md4c-html.h"
+#include "external/libclipboard.h"
 
 #include "lib/bue_util.h"
 #include "lib/bue_ui.h"

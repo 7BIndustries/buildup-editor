@@ -181,6 +181,26 @@ void set_error_popup(char* message) {
 }
 
 /******************************************************************************
+ * clear_html_preview -- Clears the HTML preview variable, and thus the view. *
+ *                                                                            *
+ * Parameters                                                                 *
+ *      None                                                                  *
+ *                                                                            *
+ * Returns                                                                    *
+ *      Nothing                                                               *
+ *****************************************************************************/
+void clear_html_preview() {
+    // Only free the memory if there is something to free
+    if (html_preview != NULL) {
+        // Start over again with the html_preview
+        free(html_preview);
+    }
+
+    // Start over again with the html_preview
+    html_preview = NULL;
+}
+
+/******************************************************************************
  * update_preview -- Handles the work of updating the HTML preview.           *
  *                                                                            *
  * Parameters                                                                 *
@@ -304,26 +324,6 @@ void deselect_entire_tree() {
             }
         }
     }
-}
-
-/******************************************************************************
- * clear_html_preview -- Clears the HTML preview variable, and thus the view. *
- *                                                                            *
- * Parameters                                                                 *
- *      None                                                                  *
- *                                                                            *
- * Returns                                                                    *
- *      Nothing                                                               *
- *****************************************************************************/
-void clear_html_preview() {
-    // Only free the memory if there is something to free
-    if (html_preview != NULL) {
-        // Start over again with the html_preview
-        free(html_preview);
-    }
-
-    // Start over again with the html_preview
-    html_preview = NULL;
 }
 
 /******************************************************************************

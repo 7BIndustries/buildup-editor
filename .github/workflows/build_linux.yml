@@ -1,0 +1,21 @@
+name: build-linux
+on:
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Prepare for build
+      shell: bash --login {0}
+      run: |
+        sudo apt install -y build-essential gcc
+    - name: Compile
+      shell: bash --login {0}
+      run: |
+        make
+    - uses: actions/upload-artifact@v2
+      with:
+        name: buildup-editor
+        path: bin/buildup-editor

@@ -15,7 +15,8 @@ jobs:
       shell: bash --login {0}
       run: |
         make
+        chmod +x bin/buildup-editor
     - uses: actions/upload-artifact@v2
       with:
-        name: buildup-editor
+        name: buildup-editor-Linux-x86_64
         path: bin/buildup-editor

@@ -11,6 +11,10 @@ jobs:
       with:
         base_image: raspbian_lite:2020-02-13
         commands: |
-          sudo apt-get install libx11-xcb-dev
-          make
           ls
+    - name: Prepare for build
+      run: |
+        sudo apt-get install -y libx11-xcb-dev
+    - name: Do build
+      run: |
+        make

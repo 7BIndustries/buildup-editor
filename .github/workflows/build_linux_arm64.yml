@@ -18,3 +18,9 @@ jobs:
     - name: Do build
       run: |
         make
+        ls
+        ls bin/
+    - uses: actions/upload-artifact@v2
+      with:
+        name: buildup-editor-Linux-arm64
+        path: bin/buildup-editor

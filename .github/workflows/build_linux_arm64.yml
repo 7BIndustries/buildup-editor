@@ -1,0 +1,15 @@
+name: build-linux-arm64
+on:
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: pguyot/arm-runner-action@v2
+    with:
+        base_image: raspbian_lite:2020-02-13
+        commands: |
+          make
+          ls

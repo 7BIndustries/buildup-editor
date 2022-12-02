@@ -1,4 +1,4 @@
-name: build-linux-arm64
+name: build-linux-armhf
 on:
   workflow_dispatch:
 
@@ -7,17 +7,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Setup directory
+      run: |
+        mkdir bin/
     - uses: pguyot/arm-runner-action@v2
       id: build_app
       with:
         base_image: raspbian_lite:2020-02-13
         copy_artifact_path: bin/buildup-editor
-        copy_artifact_dest: .
+        copy_artifact_dest: bin/
         commands: |
           sudo apt-get update --allow-releaseinfo-change
           sudo apt-get install -y libx11-xcb-dev
           make
     - uses: actions/upload-artifact@v2
       with:
-        name: buildup-editor-Linux-arm64
-        path: buildup-editor
+        name: buildup-editor-Linux-armhf
+        path: bin/buildup-editor

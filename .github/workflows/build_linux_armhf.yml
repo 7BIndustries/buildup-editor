@@ -1,5 +1,9 @@
 name: build-linux-armhf
 on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:

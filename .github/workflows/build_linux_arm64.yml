@@ -1,5 +1,9 @@
 name: build-linux-arm64
 on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:

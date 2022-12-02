@@ -11,16 +11,13 @@ jobs:
       id: build_app
       with:
         base_image: raspbian_lite:2020-02-13
+        copy_artifact_path: bin/buildup-editor
+        copy_artifact_dest: bin/
         commands: |
           sudo apt-get update --allow-releaseinfo-change
           sudo apt-get install -y libx11-xcb-dev
           make
           ls bin/
-    - name: Copy compiled app
-      run: |
-        mkdir bin/
-        mv ${{ steps.build_image.outputs.* }} bin/
-        ls bin/
     - uses: actions/upload-artifact@v2
       with:
         name: buildup-editor-Linux-arm64

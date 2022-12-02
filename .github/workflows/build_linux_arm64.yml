@@ -1,0 +1,26 @@
+name: build-linux-arm64
+on:
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup directory
+      run: |
+        mkdir bin/
+    - uses: pguyot/arm-runner-action@v2
+      id: build_app
+      with:
+        base_image: raspios_lite_arm64:2022-01-28
+        copy_artifact_path: bin/buildup-editor
+        copy_artifact_dest: bin/
+        commands: |
+          sudo apt-get update --allow-releaseinfo-change
+          sudo apt-get install -y libx11-xcb-dev
+          make
+    - uses: actions/upload-artifact@v2
+      with:
+        name: buildup-editor-Linux-arm64
+        path: bin/buildup-editor

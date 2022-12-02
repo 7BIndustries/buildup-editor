@@ -11,10 +11,9 @@ jobs:
       with:
         base_image: raspbian_lite:2020-02-13
         commands: |
-          ls
+          sudo apt-get update
           sudo apt-get install -y libx11-xcb-dev
           make
-          ls
           ls bin/
     - uses: actions/upload-artifact@v2
       with:

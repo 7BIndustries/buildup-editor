@@ -8,6 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: pguyot/arm-runner-action@v2
+      id: build_app
       with:
         base_image: raspbian_lite:2020-02-13
         commands: |
@@ -15,6 +16,11 @@ jobs:
           sudo apt-get install -y libx11-xcb-dev
           make
           ls bin/
+    - name: Copy compiled app
+      run: |
+        mkdir bin/
+        mv ${{ steps.build_image.outputs.* }} bin/
+        ls bin/
     - uses: actions/upload-artifact@v2
       with:
         name: buildup-editor-Linux-arm64

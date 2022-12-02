@@ -12,7 +12,7 @@ jobs:
       with:
         base_image: raspbian_lite:2020-02-13
         copy_artifact_path: bin/buildup-editor
-        copy_artifact_dest: bin/
+        copy_artifact_dest: .
         commands: |
           sudo apt-get update --allow-releaseinfo-change
           sudo apt-get install -y libx11-xcb-dev

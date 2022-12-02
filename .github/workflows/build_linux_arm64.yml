@@ -12,14 +12,10 @@ jobs:
         base_image: raspbian_lite:2020-02-13
         commands: |
           ls
-    - name: Prepare for build
-      run: |
-        sudo apt-get install -y libx11-xcb-dev
-    - name: Do build
-      run: |
-        make
-        ls
-        ls bin/
+          sudo apt-get install -y libx11-xcb-dev
+          make
+          ls
+          ls bin/
     - uses: actions/upload-artifact@v2
       with:
         name: buildup-editor-Linux-arm64
